@@ -5,7 +5,10 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  Image,
 } from 'react-native';
+// @ts-ignore
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ShoppingBag, TrendingUp, Package, MapPin, Phone, Users, Leaf } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -23,7 +26,7 @@ type BuyerDashboardNavigationProp = NativeStackNavigationProp<
 
 export const BuyerDashboardScreen = () => {
   const { t, i18n } = useTranslation();
-  const navigation = useNavigation<BuyerDashboardNavigationProp>();  const insets = useSafeAreaInsets();  const [selectedLanguage, setSelectedLanguage] = useState(i18n.language || 'en');
+  const navigation = useNavigation<BuyerDashboardNavigationProp>(); const insets = useSafeAreaInsets(); const [selectedLanguage, setSelectedLanguage] = useState(i18n.language || 'en');
 
   // Handle language change
   const handleLanguageChange = (value: string | { label: string; value: string }) => {
@@ -38,8 +41,7 @@ export const BuyerDashboardScreen = () => {
       });
       if (selectedLang) {
         setSelectedLanguage(selectedLang.value);
-        i18n.changeLanguage(selectedLang.value);
-        // Save language preference
+        // Save language preference (which also changes the language)
         import('../i18n/i18n').then(({ saveLanguage }) => {
           saveLanguage(selectedLang.value);
         });
@@ -120,24 +122,50 @@ export const BuyerDashboardScreen = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
+      {/* Professional Navbar (Fixed) */}
+      <View
+        className="bg-white px-4 py-3 flex-row items-center justify-between border-b border-gray-100 shadow-sm"
+        style={{
+          paddingTop: Math.max(insets.top, 12),
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 3,
+          elevation: 3,
+          zIndex: 10,
+        }}
+      >
+        <View className="flex-row items-center">
+          <Image
+            source={require('../../public/KrishakSarthiLogoPNG.png')}
+            style={{ width: 40, height: 40, borderRadius: 8 }}
+            resizeMode="contain"
+          />
+        </View>
+
+        <TouchableOpacity
+          className="p-2"
+        >
+          <Ionicons name="person-circle-outline" size={32} color="#16A34A" />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) + 24 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View className="bg-green-600 px-6 pt-12 pb-8 rounded-b-3xl">
-          <View className="mb-4">
-            <View className="flex-row items-center">
-              <ShoppingBag size={32} color="#fff" strokeWidth={2} />
-              <Text className="text-white text-3xl font-bold ml-2">
-                {tr('buyerDashboard.greeting', 'Hello Buyer!')}
-              </Text>
-            </View>
-            <Text className="text-white/90 text-base mt-1">
-              {tr('buyerDashboard.subtitle', 'Explore fresh produce from farmers')}
-            </Text>
-          </View>
+        {/* Greeting Section */}
+        <View className="px-6 py-6 bg-white">
+          <Text className="text-gray-500 text-sm font-medium uppercase tracking-wider">
+            {tr('buyerDashboard.greeting', 'Hello Buyer!')}
+          </Text>
+          <Text className="text-gray-900 text-3xl font-bold mt-2 mb-1 leading-tight" style={{ lineHeight: 44 }}>
+            {tr('roleSelection.title', 'KrishakSarthi')}
+          </Text>
+          <Text className="text-gray-600 text-base mt-2">
+            {tr('buyerDashboard.subtitle', 'Connecting you with fresh produce')}
+          </Text>
         </View>
 
         {/* Language Selector */}
@@ -148,13 +176,13 @@ export const BuyerDashboardScreen = () => {
             value={
               LANGUAGES.find((l) => l.value === selectedLanguage)
                 ? (() => {
-                    try {
-                      const lang = LANGUAGES.find((l) => l.value === selectedLanguage);
-                      return lang ? t(lang.labelKey) : '';
-                    } catch {
-                      return '';
-                    }
-                  })()
+                  try {
+                    const lang = LANGUAGES.find((l) => l.value === selectedLanguage);
+                    return lang ? t(lang.labelKey) : '';
+                  } catch {
+                    return '';
+                  }
+                })()
                 : ''
             }
             options={LANGUAGES.map((lang) => {
@@ -295,31 +323,31 @@ export const BuyerDashboardScreen = () => {
                     shadowRadius: 2,
                     elevation: 2,
                   }}
-              >
-                <View className="items-center mb-3">
-                  <Text className="text-4xl mb-2">{crop.icon}</Text>
-                  <Text className="text-gray-900 text-base font-bold">
-                    {crop.name}
-                  </Text>
-                </View>
-                <View className="border-t border-gray-100 pt-3">
-                  <View className="flex-row items-center justify-between mb-2">
-                    <Text className="text-gray-600 text-xs">
-                      {tr('buyerDashboard.availableCrops.price', 'Price')}
-                    </Text>
-                    <Text className="text-green-600 text-sm font-bold">
-                      ₹{localizeNumber(crop.price, i18n.language)}/
-                      {tr('buyerDashboard.summary.perKg', 'kg')}
+                >
+                  <View className="items-center mb-3">
+                    <Text className="text-4xl mb-2">{crop.icon}</Text>
+                    <Text className="text-gray-900 text-base font-bold">
+                      {crop.name}
                     </Text>
                   </View>
-                  <View className="flex-row items-center">
-                    <MapPin size={12} color="#9CA3AF" strokeWidth={2} />
-                    <Text className="text-gray-500 text-xs ml-1" numberOfLines={1}>
-                      {crop.location}
-                    </Text>
+                  <View className="border-t border-gray-100 pt-3">
+                    <View className="flex-row items-center justify-between mb-2">
+                      <Text className="text-gray-600 text-xs">
+                        {tr('buyerDashboard.availableCrops.price', 'Price')}
+                      </Text>
+                      <Text className="text-green-600 text-sm font-bold">
+                        ₹{localizeNumber(crop.price, i18n.language)}/
+                        {tr('buyerDashboard.summary.perKg', 'kg')}
+                      </Text>
+                    </View>
+                    <View className="flex-row items-center">
+                      <MapPin size={12} color="#9CA3AF" strokeWidth={2} />
+                      <Text className="text-gray-500 text-xs ml-1" numberOfLines={1}>
+                        {crop.location}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              </View>
               );
             })}
           </View>
@@ -344,22 +372,22 @@ export const BuyerDashboardScreen = () => {
                     shadowRadius: 2,
                     elevation: 2,
                   }}
-              >
-                <View className="flex-row items-start mb-2">
-                  <View className="bg-green-600/10 rounded-lg px-3 py-1 flex-row items-center">
-                    <MapPin size={12} color="#16A34A" strokeWidth={2} />
-                    <Text className="text-green-600 text-xs font-semibold ml-1">
-                      {update.region}
-                    </Text>
+                >
+                  <View className="flex-row items-start mb-2">
+                    <View className="bg-green-600/10 rounded-lg px-3 py-1 flex-row items-center">
+                      <MapPin size={12} color="#16A34A" strokeWidth={2} />
+                      <Text className="text-green-600 text-xs font-semibold ml-1">
+                        {update.region}
+                      </Text>
+                    </View>
                   </View>
+                  <Text className="text-gray-900 text-base font-bold mb-2">
+                    {update.title}
+                  </Text>
+                  <Text className="text-gray-600 text-sm leading-5">
+                    {update.description}
+                  </Text>
                 </View>
-                <Text className="text-gray-900 text-base font-bold mb-2">
-                  {update.title}
-                </Text>
-                <Text className="text-gray-600 text-sm leading-5">
-                  {update.description}
-                </Text>
-              </View>
               );
             })}
           </View>

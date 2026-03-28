@@ -28,7 +28,8 @@ import {
 } from 'firebase/auth';
 import { Platform } from 'react-native';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { auth, db, googleProvider } from '../config/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth, db, googleProvider, storage } from '../config/firebase';
 
 // ============================================================================
 // Types & Interfaces
@@ -68,23 +69,23 @@ const ERROR_MESSAGES: Record<string, string> = {
   'auth/weak-password': 'Password is too weak. Please use at least 6 characters.',
   'auth/invalid-email': 'Please enter a valid email address.',
   'auth/operation-not-allowed': 'Email/password accounts are not enabled. Please contact support.',
-  
+
   // Sign In Errors
   'auth/user-not-found': 'No account found with this email. Please sign up first.',
   'auth/wrong-password': 'Incorrect password. Please try again.',
   'auth/invalid-credential': 'Invalid email or password. Please check your credentials.',
   'auth/user-disabled': 'This account has been disabled. Please contact support.',
   'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
-  
+
   // Google Sign In Errors
   'auth/popup-closed-by-user': 'Sign-in was cancelled. Please try again.',
   'auth/popup-blocked': 'Sign-in popup was blocked. Please allow popups and try again.',
   'auth/cancelled-popup-request': 'Sign-in was cancelled.',
   'auth/account-exists-with-different-credential': 'An account already exists with this email using a different sign-in method.',
-  
+
   // Network Errors
   'auth/network-request-failed': 'Network error. Please check your connection and try again.',
-  
+
   // Default
   'default': 'An unexpected error occurred. Please try again.',
 };
@@ -376,7 +377,6 @@ export const saveCurrentUserProfile = async (
         ...profile,
         email: user.email ?? profile.email,
         updatedAt: serverTimestamp(),
-        createdAt: serverTimestamp(),
       },
       { merge: true }
     );
@@ -405,6 +405,33 @@ export const fetchCurrentUserProfile = async (): Promise<
   } catch (e) {
     console.error('fetchCurrentUserProfile error:', e);
     return { success: false, message: 'Failed to load profile.' };
+  }
+};
+
+/**
+ * Upload profile picture to Firebase Storage
+ */
+export const uploadProfilePicture = async (uri: string): Promise<string | null> => {
+  const user = auth.currentUser;
+  if (!user) return null;
+
+  try {
+    // 1. Fetch the blob from the URI
+    const response = await fetch(uri);
+    const blob = await response.blob();
+
+    // 2. Create a reference to the storage location
+    const fileRef = ref(storage, `profile_photos/${user.uid}_${Date.now()}.jpg`);
+
+    // 3. Upload the blob
+    await uploadBytes(fileRef, blob);
+
+    // 4. Get and return the download URL
+    const downloadURL = await getDownloadURL(fileRef);
+    return downloadURL;
+  } catch (error) {
+    console.error('Error uploading profile picture:', error);
+    return null;
   }
 };
 

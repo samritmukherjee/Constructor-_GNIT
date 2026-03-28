@@ -7,11 +7,15 @@ import {
   ActivityIndicator,
   SafeAreaView,
   Alert,
+  Animated,
+  StyleSheet,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import * as Speech from 'expo-speech';
-import { ArrowLeft, FileText, Paperclip, ClipboardList, Camera, Volume2, Square, RefreshCw } from 'lucide-react-native';
+import { ArrowLeft, FileText, Paperclip, ClipboardList, Camera, Volume2, Square, RefreshCw, Sparkles, Upload } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -32,6 +36,7 @@ interface AnalysisResult {
 export const DocumentAnalyzerScreen = () => {
   const { t, i18n } = useTranslation();
   const navigation = useNavigation<DocumentAnalyzerScreenNavigationProp>();
+  const insets = useSafeAreaInsets();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<{
@@ -46,7 +51,59 @@ export const DocumentAnalyzerScreen = () => {
   const [ttsVoiceId, setTtsVoiceId] = useState<string | undefined>(undefined);
   const speakSessionRef = useRef(0);
 
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const uploadCardScale = useRef(new Animated.Value(0.95)).current;
+  const cameraCardScale = useRef(new Animated.Value(0.95)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
   const appLanguage = i18n.language || 'en';
+
+  // Entrance animations
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.spring(uploadCardScale, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.spring(cameraCardScale, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        delay: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Pulse animation for analyzing state
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
 
   const handleDocumentUpload = async () => {
     try {
@@ -324,111 +381,326 @@ export const DocumentAnalyzerScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <View style={{ flex: 1, backgroundColor: '#FAFAFA' }}>
+      {/* Decorative Background Elements */}
+      <View style={StyleSheet.absoluteFill}>
+        <View style={{
+          position: 'absolute',
+          top: -120,
+          right: -80,
+          width: 300,
+          height: 300,
+          borderRadius: 150,
+          backgroundColor: '#DCFCE7',
+          opacity: 0.3,
+        }} />
+        <View style={{
+          position: 'absolute',
+          bottom: -100,
+          left: -60,
+          width: 280,
+          height: 280,
+          borderRadius: 140,
+          backgroundColor: '#BBF7D0',
+          opacity: 0.25,
+        }} />
+        <View style={{
+          position: 'absolute',
+          top: '40%',
+          right: -40,
+          width: 150,
+          height: 150,
+          borderRadius: 75,
+          backgroundColor: '#D1FAE5',
+          opacity: 0.2,
+        }} />
+      </View>
+
       <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: 24 }}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) + 24 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View className="bg-primary px-6 pt-12 pb-6 rounded-b-3xl mb-6">
-          <View className="items-center mb-2">
+        {/* Premium Gradient Header */}
+        <LinearGradient
+          colors={['#22C55E', '#16A34A', '#15803D']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            paddingTop: insets.top + 16,
+            paddingBottom: 40,
+            paddingHorizontal: 24,
+            borderBottomLeftRadius: 32,
+            borderBottomRightRadius: 32,
+            shadowColor: '#16A34A',
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.3,
+            shadowRadius: 16,
+            elevation: 12,
+          }}
+        >
+          <Animated.View style={{ opacity: fadeAnim }}>
             <TouchableOpacity
               onPress={() => navigation.goBack()}
-              className="bg-white/20 rounded-full w-10 h-10 items-center justify-center mb-4"
+              activeOpacity={0.7}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                paddingHorizontal: 18,
+                paddingVertical: 10,
+                borderRadius: 24,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.12,
+                shadowRadius: 5,
+                elevation: 3,
+                alignSelf: 'flex-start',
+                marginBottom: 24,
+              }}
             >
-              <ArrowLeft size={24} color="#fff" strokeWidth={2} />
+              <ArrowLeft size={20} color="#16A34A" strokeWidth={2.5} />
+              <Text style={{ 
+                color: "#16A34A",
+                fontWeight: '600',
+                fontSize: 15,
+              }}>
+                {(() => {
+                  try {
+                    const translated = t('common.back');
+                    return translated === 'common.back' ? 'Back' : translated;
+                  } catch {
+                    return 'Back';
+                  }
+                })()}
+              </Text>
             </TouchableOpacity>
-            <View className="items-center">
-              <Text className="text-white text-3xl font-bold text-center">
-                {t('analyzer.title')}
-              </Text>
-              <Text className="text-white/90 text-base mt-1 text-center">
-                {t('analyzer.subtitle')}
-              </Text>
-            </View>
-          </View>
-        </View>
 
-        <View className="px-6">
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+              <View style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                borderRadius: 20,
+                padding: 16,
+                shadowColor: '#fff',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+              }}>
+                <FileText size={40} color="#FFFFFF" strokeWidth={2.5} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{
+                  fontSize: 32,
+                  fontWeight: 'bold',
+                  color: '#FFFFFF',
+                  marginBottom: 6,
+                  letterSpacing: 0.5,
+                }}>
+                  {t('analyzer.title')}
+                </Text>
+                <Text style={{
+                  fontSize: 15,
+                  color: 'rgba(255, 255, 255, 0.95)',
+                  lineHeight: 20,
+                }}>
+                  {t('analyzer.subtitle')}
+                </Text>
+              </View>
+            </View>
+          </Animated.View>
+        </LinearGradient>
+
+        <Animated.View style={{ 
+          paddingHorizontal: 24, 
+          marginTop: 28,
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        }}>
           {/* Upload Area */}
           {!hasAnalyzed && (
-            <View className="mb-6">
-              <Text className="text-gray-900 text-xl font-bold mb-4">
-                {t('analyzer.uploadDocument')}
-              </Text>
+            <View style={{ marginBottom: 24 }}>
+              <View style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                gap: 8, 
+                marginBottom: 20 
+              }}>
+                <Sparkles size={24} color="#16A34A" strokeWidth={2.5} />
+                <Text style={{
+                  fontSize: 22,
+                  fontWeight: 'bold',
+                  color: '#111827',
+                }}>
+                  {t('analyzer.uploadDocument')}
+                </Text>
+              </View>
 
-              {/* Upload Options */}
-              <View className="flex-row mb-3">
+              {/* Premium Upload Cards */}
+              <View style={{ flexDirection: 'row', marginBottom: 20, gap: 16 }}>
                 {/* Upload from Gallery */}
-                <TouchableOpacity
-                  onPress={handleDocumentUpload}
-                  disabled={isAnalyzing}
-                  className="flex-1 bg-white rounded-xl p-4 border-2 border-dashed border-gray-300 mr-2"
-                  style={{
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 2,
-                    elevation: 2,
-                  }}
-                >
-                  <View className="items-center">
-                    <View className="bg-primary/10 rounded-full w-12 h-12 items-center justify-center mb-2">
-                      <FileText size={28} color="#22C55E" strokeWidth={2} />
+                <Animated.View style={{ 
+                  flex: 1,
+                  transform: [{ scale: uploadCardScale }],
+                }}>
+                  <TouchableOpacity
+                    onPress={handleDocumentUpload}
+                    disabled={isAnalyzing}
+                    activeOpacity={0.85}
+                    style={{
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: 20,
+                      padding: 24,
+                      borderWidth: 2,
+                      borderColor: '#DCFCE7',
+                      shadowColor: '#22C55E',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.15,
+                      shadowRadius: 12,
+                      elevation: 6,
+                    }}
+                  >
+                    <View style={{ alignItems: 'center' }}>
+                      <LinearGradient
+                        colors={['#22C55E', '#16A34A']}
+                        style={{
+                          borderRadius: 60,
+                          width: 68,
+                          height: 68,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginBottom: 16,
+                          shadowColor: '#22C55E',
+                          shadowOffset: { width: 0, height: 4 },
+                          shadowOpacity: 0.3,
+                          shadowRadius: 8,
+                          elevation: 5,
+                        }}
+                      >
+                        <Upload size={34} color="#FFFFFF" strokeWidth={2.5} />
+                      </LinearGradient>
+                      <Text style={{
+                        color: '#111827',
+                        fontSize: 14,
+                        fontWeight: '700',
+                        textAlign: 'center',
+                      }}>
+                        {t('analyzer.uploadLabel')}
+                      </Text>
+                      <Text style={{
+                        color: '#64748B',
+                        fontSize: 11,
+                        marginTop: 4,
+                        textAlign: 'center',
+                      }}>
+                        JPG, PNG
+                      </Text>
                     </View>
-                    <Text className="text-gray-900 text-sm font-semibold text-center">
-                      {t('analyzer.uploadLabel')}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                </Animated.View>
 
                 {/* Take Photo */}
-                <TouchableOpacity
-                  onPress={handleCameraCapture}
-                  disabled={isAnalyzing}
-                  className="flex-1 bg-white rounded-xl p-4 border-2 border-dashed border-gray-300 ml-2"
-                  style={{
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 2,
-                    elevation: 2,
-                  }}
-                >
-                  <View className="items-center">
-                    <View className="bg-blue-100 rounded-full w-12 h-12 items-center justify-center mb-2">
-                      <Camera size={28} color="#3B82F6" strokeWidth={2} />
+                <Animated.View style={{ 
+                  flex: 1,
+                  transform: [{ scale: cameraCardScale }],
+                }}>
+                  <TouchableOpacity
+                    onPress={handleCameraCapture}
+                    disabled={isAnalyzing}
+                    activeOpacity={0.85}
+                    style={{
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: 20,
+                      padding: 24,
+                      borderWidth: 2,
+                      borderColor: '#D1FAE5',
+                      shadowColor: '#10B981',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.15,
+                      shadowRadius: 12,
+                      elevation: 6,
+                    }}
+                  >
+                    <View style={{ alignItems: 'center' }}>
+                      <LinearGradient
+                        colors={['#10B981', '#059669']}
+                        style={{
+                          borderRadius: 60,
+                          width: 68,
+                          height: 68,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginBottom: 16,
+                          shadowColor: '#10B981',
+                          shadowOffset: { width: 0, height: 4 },
+                          shadowOpacity: 0.3,
+                          shadowRadius: 8,
+                          elevation: 5,
+                        }}
+                      >
+                        <Camera size={34} color="#FFFFFF" strokeWidth={2.5} />
+                      </LinearGradient>
+                      <Text style={{
+                        color: '#111827',
+                        fontSize: 14,
+                        fontWeight: '700',
+                        textAlign: 'center',
+                      }}>
+                        Take Photo
+                      </Text>
+                      <Text style={{
+                        color: '#64748B',
+                        fontSize: 11,
+                        marginTop: 4,
+                        textAlign: 'center',
+                      }}>
+                        Use Camera
+                      </Text>
                     </View>
-                    <Text className="text-gray-900 text-sm font-semibold text-center">
-                      Take Photo
-                    </Text>
-                  </View>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                </Animated.View>
               </View>
 
               {/* Selected Document Display */}
               {selectedDocument && (
                 <View
-                  className="bg-white rounded-xl p-4 mb-3"
                   style={{
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 2,
-                    elevation: 2,
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 16,
+                    padding: 16,
+                    marginBottom: 16,
+                    borderWidth: 1,
+                    borderColor: '#DCFCE7',
+                    shadowColor: '#22C55E',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.08,
+                    shadowRadius: 6,
+                    elevation: 3,
                   }}
                 >
-                  <View className="flex-row items-center">
-                    <View className="bg-primary/10 rounded-lg p-2 mr-3">
-                      <Paperclip size={20} color="#22C55E" strokeWidth={2} />
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={{
+                      backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                      borderRadius: 12,
+                      padding: 10,
+                      marginRight: 12,
+                    }}>
+                      <Paperclip size={22} color="#22C55E" strokeWidth={2.5} />
                     </View>
-                    <View className="flex-1">
-                      <Text className="text-gray-900 text-sm font-semibold" numberOfLines={1}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{
+                        color: '#111827',
+                        fontSize: 14,
+                        fontWeight: '600',
+                      }} numberOfLines={1}>
                         {selectedDocument.name}
                       </Text>
                       {selectedDocument.size && (
-                        <Text className="text-gray-500 text-xs">
+                        <Text style={{
+                          color: '#64748B',
+                          fontSize: 12,
+                          marginTop: 2,
+                        }}>
                           {(selectedDocument.size / 1024).toFixed(1)} KB
                         </Text>
                       )}
@@ -438,9 +710,16 @@ export const DocumentAnalyzerScreen = () => {
                         setSelectedDocument(null);
                         setAnalysisError(null);
                       }}
-                      className="bg-red-100 rounded-full p-2"
+                      style={{
+                        backgroundColor: '#FEE2E2',
+                        borderRadius: 20,
+                        width: 32,
+                        height: 32,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
                     >
-                      <Text className="text-red-600 text-xs font-semibold">✕</Text>
+                      <Text style={{ color: '#DC2626', fontSize: 14, fontWeight: 'bold' }}>✕</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -455,47 +734,104 @@ export const DocumentAnalyzerScreen = () => {
 
               {/* Error Display */}
               {analysisError && (
-                <View className="bg-red-50 rounded-xl p-4 mb-4 border border-red-200">
-                  <Text className="text-red-700 text-sm text-center">{analysisError}</Text>
+                <View style={{
+                  backgroundColor: '#FEF2F2',
+                  borderRadius: 16,
+                  padding: 16,
+                  marginBottom: 16,
+                  borderWidth: 1,
+                  borderColor: '#FECACA',
+                }}>
+                  <Text style={{ color: '#991B1B', fontSize: 14, textAlign: 'center' }}>
+                    {analysisError}
+                  </Text>
                 </View>
               )}
 
-              {/* Analyze Button */}
-              <TouchableOpacity
-                onPress={handleAnalyze}
-                disabled={!selectedDocument || isAnalyzing}
-                className={`rounded-xl py-4 mt-6 ${!selectedDocument || isAnalyzing
-                  ? 'bg-gray-300'
-                  : 'bg-primary'
-                  }`}
+              {/* Premium Analyze Button */}
+              <LinearGradient
+                colors={!selectedDocument || isAnalyzing 
+                  ? ['#D1D5DB', '#9CA3AF'] 
+                  : ['#22C55E', '#16A34A']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
                 style={{
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 3,
+                  borderRadius: 18,
+                  marginTop: 24,
+                  shadowColor: !selectedDocument || isAnalyzing ? '#000' : '#22C55E',
+                  shadowOffset: { width: 0, height: 6 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 12,
+                  elevation: 8,
                 }}
               >
-                <Text className="text-white text-center text-lg font-semibold">
-                  {t('analyzer.analyzeButton')}
-                </Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleAnalyze}
+                  disabled={!selectedDocument || isAnalyzing}
+                  style={{
+                    paddingVertical: 18,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                  }}
+                >
+                  <Sparkles size={22} color="#FFFFFF" strokeWidth={2.5} />
+                  <Text style={{
+                    color: '#FFFFFF',
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                    letterSpacing: 0.5,
+                  }}>
+                    {t('analyzer.analyzeButton')}
+                  </Text>
+                </TouchableOpacity>
+              </LinearGradient>
             </View>
           )}
 
-          {/* Processing State */}
+          {/* Premium Processing State */}
           {isAnalyzing && (
-            <View className="bg-white rounded-xl p-8 mb-6">
-              <View className="items-center">
+            <Animated.View style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 24,
+              padding: 40,
+              marginBottom: 24,
+              alignItems: 'center',
+              borderWidth: 2,
+              borderColor: '#DCFCE7',
+              shadowColor: '#22C55E',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.15,
+              shadowRadius: 16,
+              elevation: 8,
+              transform: [{ scale: pulseAnim }],
+            }}>
+              <View style={{
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                borderRadius: 60,
+                padding: 20,
+                marginBottom: 20,
+              }}>
                 <ActivityIndicator size="large" color="#22C55E" />
-                <Text className="text-gray-900 text-lg font-semibold mt-4">
-                  {t('analyzer.analyzing')}
-                </Text>
-                <Text className="text-gray-600 text-sm mt-2 text-center">
-                  {t('analyzer.analyzingHint')}
-                </Text>
               </View>
-            </View>
+              <Text style={{
+                color: '#111827',
+                fontSize: 20,
+                fontWeight: 'bold',
+                marginBottom: 8,
+              }}>
+                {t('analyzer.analyzing')}
+              </Text>
+              <Text style={{
+                color: '#64748B',
+                fontSize: 14,
+                textAlign: 'center',
+                lineHeight: 20,
+              }}>
+                {t('analyzer.analyzingHint')}
+              </Text>
+            </Animated.View>
           )}
 
           {/* Result Container */}
@@ -625,8 +961,8 @@ export const DocumentAnalyzerScreen = () => {
               </View>
             </View>
           )}
-        </View>
+        </Animated.View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };

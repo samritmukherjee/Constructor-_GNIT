@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,10 @@ import {
   ActivityIndicator,
   TextInput,
   Alert,
-  Animated,
-  StyleSheet,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, Sprout, Calendar, MapPin, Leaf, Info, Sparkles } from 'lucide-react-native';
+import { ArrowLeft, Sprout, Calendar, MapPin, Leaf, Info } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -60,11 +58,6 @@ export const CropPredictionScreen = () => {
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
-  // Animation refs
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-  const cardScale = useRef(new Animated.Value(0.95)).current;
-
   // State for showing custom input fields
   const [showCustomCropType, setShowCustomCropType] = useState(false);
   const [showCustomSoilType, setShowCustomSoilType] = useState(false);
@@ -72,28 +65,6 @@ export const CropPredictionScreen = () => {
   const [customCropType, setCustomCropType] = useState('');
   const [customSoilType, setCustomSoilType] = useState('');
   const [customFarmingMethod, setCustomFarmingMethod] = useState('');
-
-  // Entrance animations
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.spring(cardScale, {
-        toValue: 1,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
 
   // Get translated dropdown options
   const getCropTypes = () => [
@@ -270,179 +241,87 @@ export const CropPredictionScreen = () => {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#FAFAFA' }}>
-      {/* Decorative Background Elements */}
-      <View style={StyleSheet.absoluteFill}>
-        <View style={{
-          position: 'absolute',
-          top: -120,
-          right: -80,
-          width: 300,
-          height: 300,
-          borderRadius: 150,
-          backgroundColor: '#DCFCE7',
-          opacity: 0.3,
-        }} />
-        <View style={{
-          position: 'absolute',
-          bottom: -100,
-          left: -60,
-          width: 280,
-          height: 280,
-          borderRadius: 140,
-          backgroundColor: '#BBF7D0',
-          opacity: 0.25,
-        }} />
-        <View style={{
-          position: 'absolute',
-          top: '40%',
-          right: -40,
-          width: 150,
-          height: 150,
-          borderRadius: 75,
-          backgroundColor: '#D1FAE5',
-          opacity: 0.2,
-        }} />
-      </View>
-
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1, backgroundColor: '#F9FAFB' }}
+    >
+      <ScrollView
         style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) + 24 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) + 24 }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+        {/* Modern Header with Gradient */}
+        <LinearGradient
+          colors={['#22C55E', '#16A34A', '#15803D']}
+          style={{
+            paddingTop: insets.top + 16,
+            paddingBottom: 32,
+            paddingHorizontal: 24,
+          }}
         >
-          {/* Premium Gradient Header */}
-          <LinearGradient
-            colors={['#22C55E', '#16A34A', '#15803D']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
             style={{
-              paddingTop: insets.top + 16,
-              paddingBottom: 40,
-              paddingHorizontal: 24,
-              borderBottomLeftRadius: 32,
-              borderBottomRightRadius: 32,
-              shadowColor: '#16A34A',
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.3,
-              shadowRadius: 16,
-              elevation: 12,
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              paddingHorizontal: 18,
+              paddingVertical: 10,
+              borderRadius: 24,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.12,
+              shadowRadius: 5,
+              elevation: 3,
+              alignSelf: 'flex-start',
+              marginBottom: 20,
             }}
           >
-            <Animated.View style={{ opacity: fadeAnim }}>
-              <TouchableOpacity
-                onPress={() => navigation.goBack()}
-                activeOpacity={0.7}
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  paddingHorizontal: 18,
-                  paddingVertical: 10,
-                  borderRadius: 24,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 8,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.12,
-                  shadowRadius: 5,
-                  elevation: 3,
-                  alignSelf: 'flex-start',
-                  marginBottom: 24,
-                }}
-              >
-                <ArrowLeft size={20} color="#16A34A" strokeWidth={2.5} />
-                <Text style={{ 
-                  color: '#16A34A',
-                  fontWeight: '600',
-                  fontSize: 15,
-                }}>
-                  {(() => {
-                    try {
-                      const translated = t('common.back');
-                      return translated === 'common.back' ? 'Back' : translated;
-                    } catch {
-                      return 'Back';
-                    }
-                  })()}
-                </Text>
-              </TouchableOpacity>
-
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-                <View style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                  borderRadius: 20,
-                  padding: 16,
-                  shadowColor: '#fff',
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                }}>
-                  <Sprout size={40} color="#FFFFFF" strokeWidth={2.5} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{
-                    fontSize: 32,
-                    fontWeight: 'bold',
-                    color: '#FFFFFF',
-                    marginBottom: 6,
-                    letterSpacing: 0.5,
-                  }}>
-                    {t('prediction.title')}
-                  </Text>
-                  <Text style={{
-                    fontSize: 15,
-                    color: 'rgba(255, 255, 255, 0.95)',
-                    lineHeight: 20,
-                  }}>
-                    {t('prediction.subtitle')}
-                  </Text>
-                </View>
-              </View>
-            </Animated.View>
-          </LinearGradient>
-
-          <Animated.View style={{ 
-            paddingHorizontal: 24, 
-            marginTop: 28,
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          }}>
-            {/* Section Title with Icon */}
-            <View style={{ 
-              flexDirection: 'row', 
-              alignItems: 'center', 
-              gap: 8, 
-              marginBottom: 20 
+            <ArrowLeft size={20} color="#16A34A" strokeWidth={2.5} />
+            <Text style={{ 
+              color: '#16A34A',
+              fontWeight: '600',
+              fontSize: 15,
             }}>
-              <Sparkles size={24} color="#16A34A" strokeWidth={2.5} />
-              <Text style={{
-                fontSize: 22,
-                fontWeight: 'bold',
-                color: '#111827',
-              }}>
-                {t('prediction.cropInfo') || 'Crop Information'}
+              {t('common.back') || 'Back'}
+            </Text>
+          </TouchableOpacity>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              borderRadius: 16,
+              padding: 12,
+            }}>
+              <Sprout size={32} color="#FFFFFF" strokeWidth={2} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 28, fontWeight: '700', color: '#FFFFFF' }}>
+                {t('prediction.title')}
+              </Text>
+              <Text style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.9)', marginTop: 4 }}>
+                {t('prediction.subtitle')}
               </Text>
             </View>
+          </View>
+        </LinearGradient>
 
-            {/* Crop Information Card */}
-            <Animated.View style={{ transform: [{ scale: cardScale }] }}>
-              <View style={{
-                backgroundColor: '#FFFFFF',
-                borderRadius: 20,
-                padding: 24,
-                marginBottom: 20,
-                borderWidth: 2,
-                borderColor: '#DCFCE7',
-                shadowColor: '#22C55E',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.15,
-                shadowRadius: 12,
-                elevation: 6,
-              }}>
+        <View style={{ paddingHorizontal: 20, marginTop: -16 }}>
+          {/* Crop Information Card */}
+          <View style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 20,
+            padding: 20,
+            marginBottom: 16,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.08,
+            shadowRadius: 12,
+            elevation: 4,
+          }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
               <LinearGradient
                 colors={['#22C55E', '#16A34A']}
@@ -501,7 +380,6 @@ export const CropPredictionScreen = () => {
               error={errors.acres}
             />
           </View>
-            </Animated.View>
 
           {/* Timeline Section */}
           <View className="mb-6">
@@ -647,55 +525,30 @@ export const CropPredictionScreen = () => {
             </View>
           </View>
 
-          {/* Premium Submit Button */}
-          <LinearGradient
-            colors={!isFormValid() || isLoading 
-              ? ['#D1D5DB', '#9CA3AF'] 
-              : ['#22C55E', '#16A34A']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
+          {/* Submit Button */}
+          <TouchableOpacity
+            onPress={handleSubmit}
+            disabled={!isFormValid() || isLoading}
+            className={`rounded-xl py-4 mb-6 ${!isFormValid() || isLoading ? 'bg-gray-300' : 'bg-green-500'
+              }`}
             style={{
-              borderRadius: 18,
-              marginTop: 8,
-              marginBottom: 24,
-              shadowColor: !isFormValid() || isLoading ? '#000' : '#22C55E',
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.25,
-              shadowRadius: 12,
-              elevation: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 3,
             }}
           >
-            <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={!isFormValid() || isLoading}
-              style={{
-                paddingVertical: 18,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 10,
-              }}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <>
-                  <Sparkles size={22} color="#FFFFFF" strokeWidth={2.5} />
-                  <Text style={{
-                    color: '#FFFFFF',
-                    fontSize: 18,
-                    fontWeight: 'bold',
-                    letterSpacing: 0.5,
-                  }}>
-                    {t('prediction.submitButton')}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </LinearGradient>
-          </Animated.View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+            {isLoading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text className="text-white text-center text-lg font-semibold" numberOfLines={1} adjustsFontSizeToFit>
+                {t('prediction.submitButton')}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };

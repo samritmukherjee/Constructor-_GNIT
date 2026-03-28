@@ -41,14 +41,13 @@ export const loadLanguage = async () => {
 export const saveLanguage = async (language: string) => {
   try {
     await AsyncStorage.setItem(LANGUAGE_KEY, language);
+    // Immediately change language after saving
+    if (i18n.isInitialized) {
+      await i18n.changeLanguage(language);
+    }
   } catch (error) {
     console.error('Error saving language:', error);
   }
 };
-
-// Load saved language after a short delay to ensure app is ready
-setTimeout(() => {
-  loadLanguage();
-}, 100);
 
 export default i18n;

@@ -9,14 +9,15 @@
  */
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
+import {
+  getAuth,
+  GoogleAuthProvider,
   Auth,
   initializeAuth,
 } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 // Firebase configuration using environment variables
 // These values are read from .env file at build time
@@ -64,6 +65,7 @@ if (getApps().length === 0) {
  * Firestore Database
  */
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 /**
  * Initialize Firebase Auth with AsyncStorage persistence
@@ -75,7 +77,7 @@ try {
   // Try to use React Native persistence with AsyncStorage
   // Import dynamically to handle different Firebase versions
   const { getReactNativePersistence } = require('firebase/auth/react-native');
-  
+
   auth = initializeAuth(app, {
     persistence: getReactNativePersistence(AsyncStorage),
   });
@@ -103,5 +105,5 @@ googleProvider.setCustomParameters({
 });
 
 // Export initialized Firebase instances
-export { app, auth, db, googleProvider };
+export { app, auth, db, storage, googleProvider };
 export default app;

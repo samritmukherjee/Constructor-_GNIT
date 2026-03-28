@@ -50,21 +50,37 @@ export const Dropdown: React.FC<DropdownProps> = ({
   };
 
   return (
-    <View className="mb-4">
+    <View className="mb-0">
       {label && <Text className="text-gray-700 font-medium mb-2 text-base">{label}</Text>}
       <TouchableOpacity
         onPress={() => !disabled && setIsOpen(true)}
-        className={`bg-white border ${
-          error ? 'border-red-500' : 'border-gray-300'
-        } ${disabled ? 'opacity-50' : ''} rounded-xl px-4 py-4 flex-row justify-between items-center`}
+        className={`bg-gray-50 border ${
+          error ? 'border-red-500' : 'border-gray-200'
+        } ${disabled ? 'opacity-50' : ''}`}
+        style={{
+          borderRadius: 12,
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          minHeight: 52,
+        }}
         disabled={disabled}
       >
         <Text
-          className={`text-base ${value ? 'text-gray-900' : 'text-gray-400'}`}
+          style={{
+            fontSize: 15,
+            color: value ? '#1F2937' : '#9CA3AF',
+            fontWeight: '500',
+            flex: 1,
+            paddingVertical: 2,
+            lineHeight: 22,
+          }}
         >
           {getDisplayLabel()}
         </Text>
-        <Ionicons name="chevron-down" size={20} color="#6B7280" />
+        <Ionicons name="chevron-down" size={20} color="#6B7280" style={{ marginLeft: 12 }} />
       </TouchableOpacity>
       {error && <Text className="text-red-600 text-sm mt-1">{error}</Text>}
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,14 +7,16 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  Animated,
+  StyleSheet,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-// @ts-ignore
-import { Ionicons } from '@expo/vector-icons';
+import { ArrowLeft, Scan, Camera, Image as ImageIcon, Sparkles, Upload, X } from 'lucide-react-native';
 import { CustomInput } from '../components/CustomInput';
 import { Dropdown } from '../components/Dropdown';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -47,6 +49,58 @@ export const CropDiseaseDetectionScreen = () => {
     otherCropType: '',
     recentWeather: '',
   });
+
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const cameraCardScale = useRef(new Animated.Value(0.95)).current;
+  const galleryCardScale = useRef(new Animated.Value(0.95)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Entrance animations
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.spring(cameraCardScale, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.spring(galleryCardScale, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        delay: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Pulse animation for analyzing state
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
 
   const CROP_TYPES = [
     { label: t('disease.cropTypes.rice'), value: 'rice' },
@@ -176,159 +230,484 @@ export const CropDiseaseDetectionScreen = () => {
   };
 
   return (
-    <View className="flex-1 bg-white">
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ 
-          padding: 24, 
-          paddingBottom: Math.max(insets.bottom, 24) + 24 
-        }}
-      >
-        {/* Header */}
-        <View className="mb-6">
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            className="mb-4"
-          >
-            <Ionicons name="arrow-back" size={24} color="#000" />
-          </TouchableOpacity>
-          <Text className="text-3xl font-bold text-gray-800">
-            {t('disease.title')}
-          </Text>
-        </View>
+    <View style={{ flex: 1, backgroundColor: '#FAFAFA' }}>
+      {/* Decorative Background Elements */}
+      <View style={StyleSheet.absoluteFill}>
+        <View style={{
+          position: 'absolute',
+          top: -120,
+          right: -80,
+          width: 300,
+          height: 300,
+          borderRadius: 150,
+          backgroundColor: '#DCFCE7',
+          opacity: 0.3,
+        }} />
+        <View style={{
+          position: 'absolute',
+          bottom: -100,
+          left: -60,
+          width: 280,
+          height: 280,
+          borderRadius: 140,
+          backgroundColor: '#BBF7D0',
+          opacity: 0.25,
+        }} />
+        <View style={{
+          position: 'absolute',
+          top: '40%',
+          right: -40,
+          width: 150,
+          height: 150,
+          borderRadius: 75,
+          backgroundColor: '#D1FAE5',
+          opacity: 0.2,
+        }} />
+      </View>
 
-        {/* Crop Image Upload Section */}
-        <View className="mb-6">
-          <Text className="text-base font-semibold text-gray-700 mb-2">
-            {t('disease.uploadImage')} *
-          </Text>
-          <Text className="text-sm text-gray-500 mb-3">
-            {t('disease.instruction')}
-          </Text>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) + 24 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Premium Gradient Header */}
+        <LinearGradient
+          colors={['#22C55E', '#16A34A', '#15803D']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            paddingTop: insets.top + 16,
+            paddingBottom: 40,
+            paddingHorizontal: 24,
+            borderBottomLeftRadius: 32,
+            borderBottomRightRadius: 32,
+            shadowColor: '#16A34A',
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.3,
+            shadowRadius: 16,
+            elevation: 12,
+          }}
+        >
+          <Animated.View style={{ opacity: fadeAnim }}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.7}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                paddingHorizontal: 18,
+                paddingVertical: 10,
+                borderRadius: 24,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.12,
+                shadowRadius: 5,
+                elevation: 3,
+                alignSelf: 'flex-start',
+                marginBottom: 24,
+              }}
+            >
+              <ArrowLeft size={20} color="#16A34A" strokeWidth={2.5} />
+              <Text style={{ 
+                color: '#16A34A',
+                fontWeight: '600',
+                fontSize: 15,
+              }}>
+                {(() => {
+                  try {
+                    const translated = t('common.back');
+                    return translated === 'common.back' ? 'Back' : translated;
+                  } catch {
+                    return 'Back';
+                  }
+                })()}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+              <View style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                borderRadius: 20,
+                padding: 16,
+                shadowColor: '#fff',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+              }}>
+                <Scan size={40} color="#FFFFFF" strokeWidth={2.5} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{
+                  fontSize: 32,
+                  fontWeight: 'bold',
+                  color: '#FFFFFF',
+                  letterSpacing: 0.5,
+                }}>
+                  {t('disease.title')}
+                </Text>
+              </View>
+            </View>
+          </Animated.View>
+        </LinearGradient>
+
+        {/* Upload Image Section */}
+        <Animated.View style={{ 
+          paddingHorizontal: 24, 
+          marginTop: 28,
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        }}>
+          {/* Section Title with Icon */}
+          <View style={{ 
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            gap: 8, 
+            marginBottom: 20 
+          }}>
+            <Sparkles size={24} color="#16A34A" strokeWidth={2.5} />
+            <Text style={{
+              fontSize: 22,
+              fontWeight: 'bold',
+              color: '#111827',
+            }}>
+              {t('disease.uploadImage')}
+            </Text>
+          </View>
 
           {formData.cropImage ? (
-            <View className="relative">
+            <View style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 20,
+              padding: 16,
+              marginBottom: 20,
+              borderWidth: 2,
+              borderColor: '#DCFCE7',
+              shadowColor: '#22C55E',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.15,
+              shadowRadius: 12,
+              elevation: 6,
+            }}>
               <Image
                 source={{ uri: formData.cropImage }}
-                className="w-full h-64 rounded-xl"
+                style={{
+                  width: '100%',
+                  height: 280,
+                  borderRadius: 16,
+                }}
                 resizeMode="cover"
               />
               <TouchableOpacity
                 onPress={() => handleFieldChange('cropImage', null)}
-                className="absolute top-2 right-2 bg-red-500 rounded-full w-8 h-8 items-center justify-center"
+                activeOpacity={0.85}
+                style={{
+                  position: 'absolute',
+                  top: 24,
+                  right: 24,
+                  backgroundColor: '#EF4444',
+                  borderRadius: 20,
+                  width: 40,
+                  height: 40,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#EF4444',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.4,
+                  shadowRadius: 8,
+                  elevation: 5,
+                }}
               >
-                <Ionicons name="close" size={20} color="#fff" />
+                <X size={24} color="#FFFFFF" strokeWidth={3} />
               </TouchableOpacity>
             </View>
           ) : (
-            <View className="flex-row gap-3">
-              <TouchableOpacity
-                onPress={pickImageFromCamera}
-                className="flex-1 bg-green-50 border-2 border-green-200 rounded-xl p-4 items-center"
-              >
-                <Ionicons name="camera" size={32} color="#16a34a" />
-                <Text className="text-green-700 font-semibold mt-2">
-                  {t('disease.takePhoto')}
-                </Text>
-              </TouchableOpacity>
+            <View style={{ flexDirection: 'row', marginBottom: 20, gap: 16 }}>
+              {/* Camera Card */}
+              <Animated.View style={{ 
+                flex: 1,
+                transform: [{ scale: cameraCardScale }],
+              }}>
+                <TouchableOpacity
+                  onPress={pickImageFromCamera}
+                  activeOpacity={0.85}
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 20,
+                    padding: 24,
+                    borderWidth: 2,
+                    borderColor: '#DCFCE7',
+                    shadowColor: '#22C55E',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.15,
+                    shadowRadius: 12,
+                    elevation: 6,
+                  }}
+                >
+                  <View style={{ alignItems: 'center' }}>
+                    <LinearGradient
+                      colors={['#22C55E', '#16A34A']}
+                      style={{
+                        borderRadius: 60,
+                        width: 68,
+                        height: 68,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: 16,
+                        shadowColor: '#22C55E',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 8,
+                        elevation: 5,
+                      }}
+                    >
+                      <Camera size={34} color="#FFFFFF" strokeWidth={2.5} />
+                    </LinearGradient>
+                    <Text style={{
+                      color: '#111827',
+                      fontSize: 14,
+                      fontWeight: '700',
+                      textAlign: 'center',
+                    }}>
+                      {t('disease.takePhoto')}
+                    </Text>
+                    <Text style={{
+                      color: '#64748B',
+                      fontSize: 11,
+                      marginTop: 4,
+                      textAlign: 'center',
+                    }}>
+                      Use Camera
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
 
-              <TouchableOpacity
-                onPress={pickImageFromGallery}
-                className="flex-1 bg-blue-50 border-2 border-blue-200 rounded-xl p-4 items-center"
-              >
-                <Ionicons name="images" size={32} color="#2563eb" />
-                <Text className="text-blue-700 font-semibold mt-2">
-                  {t('disease.choosePhoto')}
-                </Text>
-              </TouchableOpacity>
+              {/* Gallery Card */}
+              <Animated.View style={{ 
+                flex: 1,
+                transform: [{ scale: galleryCardScale }],
+              }}>
+                <TouchableOpacity
+                  onPress={pickImageFromGallery}
+                  activeOpacity={0.85}
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 20,
+                    padding: 24,
+                    borderWidth: 2,
+                    borderColor: '#D1FAE5',
+                    shadowColor: '#10B981',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.15,
+                    shadowRadius: 12,
+                    elevation: 6,
+                  }}
+                >
+                  <View style={{ alignItems: 'center' }}>
+                    <LinearGradient
+                      colors={['#10B981', '#059669']}
+                      style={{
+                        borderRadius: 60,
+                        width: 68,
+                        height: 68,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: 16,
+                        shadowColor: '#10B981',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 8,
+                        elevation: 5,
+                      }}
+                    >
+                      <ImageIcon size={34} color="#FFFFFF" strokeWidth={2.5} />
+                    </LinearGradient>
+                    <Text style={{
+                      color: '#111827',
+                      fontSize: 14,
+                      fontWeight: '700',
+                      textAlign: 'center',
+                    }}>
+                      {t('disease.choosePhoto')}
+                    </Text>
+                    <Text style={{
+                      color: '#64748B',
+                      fontSize: 11,
+                      marginTop: 4,
+                      textAlign: 'center',
+                    }}>
+                      From Gallery
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
             </View>
           )}
-        </View>
+        </Animated.View>
 
-        {/* Crop Age Field */}
-        <View className="mb-6">
-          <Text className="text-base font-semibold text-gray-700 mb-2">
-            {t('disease.cropAge')}
-          </Text>
-          <View className="flex-row items-center">
-            <View className="flex-1">
-              <CustomInput
-                label=""
-                value={localizeNumber(formData.cropAge, i18n.language)}
-                onChangeText={(value) => {
-                  const delocalized = delocalizeNumber(value, i18n.language);
-                  handleFieldChange('cropAge', delocalized);
+        {/* Crop Details Card */}
+        <Animated.View style={{
+          paddingHorizontal: 24,
+          marginTop: 8,
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        }}>
+          <View style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 24,
+            padding: 20,
+            borderWidth: 2,
+            borderColor: '#DCFCE7',
+            shadowColor: '#22C55E',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.12,
+            shadowRadius: 12,
+            elevation: 6,
+            marginBottom: 20,
+          }}>
+            {/* Crop Age Field */}
+            <View style={{ marginBottom: 20 }}>
+              <Text style={{
+                fontSize: 15,
+                fontWeight: '700',
+                color: '#374151',
+                marginBottom: 10,
+              }}>
+                {t('disease.cropAge')}
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ flex: 1 }}>
+                  <CustomInput
+                    label=""
+                    value={localizeNumber(formData.cropAge, i18n.language)}
+                    onChangeText={(value) => {
+                      const delocalized = delocalizeNumber(value, i18n.language);
+                      handleFieldChange('cropAge', delocalized);
+                    }}
+                    placeholder={localizeNumber(t('disease.cropAgePlaceholder'), i18n.language)}
+                    keyboardType="numeric"
+                  />
+                </View>
+                {formData.cropAge && (
+                  <Text style={{
+                    color: '#6B7280',
+                    marginLeft: 12,
+                    fontWeight: '600',
+                  }}>
+                    {t('disease.days')}
+                  </Text>
+                )}
+              </View>
+            </View>
+
+            {/* Crop Type Dropdown */}
+            <View style={{ marginBottom: formData.cropType === 'other' ? 20 : 0 }}>
+              <Text style={{
+                fontSize: 15,
+                fontWeight: '700',
+                color: '#374151',
+                marginBottom: 10,
+              }}>
+                {t('disease.cropType')}
+              </Text>
+              <Dropdown
+                value={formData.cropType}
+                onSelect={(item) => {
+                  const value = typeof item === 'string' ? item : item.value;
+                  handleFieldChange('cropType', value);
+                  // Clear other crop type if not selecting 'other'
+                  if (value !== 'other') {
+                    handleFieldChange('otherCropType', '');
+                  }
                 }}
-                placeholder={localizeNumber(t('disease.cropAgePlaceholder'), i18n.language)}
-                keyboardType="numeric"
+                options={CROP_TYPES}
+                placeholder={t('disease.cropTypePlaceholder')}
               />
             </View>
-            {formData.cropAge && (
-              <Text className="text-gray-600 ml-3">
-                {t('disease.days')}
-              </Text>
+
+            {/* Other Crop Type Input - Only show if 'other' is selected */}
+            {formData.cropType === 'other' && (
+              <View>
+                <Text style={{
+                  fontSize: 15,
+                  fontWeight: '700',
+                  color: '#374151',
+                  marginBottom: 10,
+                }}>
+                  {t('disease.otherCropType')}
+                </Text>
+                <CustomInput
+                  label=""
+                  value={formData.otherCropType}
+                  onChangeText={(value) => handleFieldChange('otherCropType', value)}
+                  placeholder={t('disease.otherCropTypePlaceholder')}
+                />
+              </View>
             )}
           </View>
-        </View>
 
-        {/* Crop Type Dropdown */}
-        <View className="mb-6">
-          <Text className="text-base font-semibold text-gray-700 mb-2">
-            {t('disease.cropType')}
-          </Text>
-          <Dropdown
-            value={formData.cropType}
-            onSelect={(item) => {
-              const value = typeof item === 'string' ? item : item.value;
-              handleFieldChange('cropType', value);
-              // Clear other crop type if not selecting 'other'
-              if (value !== 'other') {
-                handleFieldChange('otherCropType', '');
-              }
-            }}
-            options={CROP_TYPES}
-            placeholder={t('disease.cropTypePlaceholder')}
-          />
-        </View>
-
-        {/* Other Crop Type Input - Only show if 'other' is selected */}
-        {formData.cropType === 'other' && (
-          <View className="mb-6">
-            <Text className="text-base font-semibold text-gray-700 mb-2">
-              {t('disease.otherCropType')}
-            </Text>
-            <CustomInput
-              label=""
-              value={formData.otherCropType}
-              onChangeText={(value) => handleFieldChange('otherCropType', value)}
-              placeholder={t('disease.otherCropTypePlaceholder')}
-            />
-          </View>
-        )}
-
-        {/* Analyze Button */}
-        <TouchableOpacity
-          onPress={handleAnalyze}
-          disabled={!canAnalyze() || isAnalyzing}
-          className={`rounded-xl py-4 items-center ${
-            canAnalyze() && !isAnalyzing
-              ? 'bg-green-600'
-              : 'bg-gray-300'
-          }`}
-        >
-          {isAnalyzing ? (
-            <View className="flex-row items-center">
-              <ActivityIndicator color="#fff" />
-              <Text className="text-white text-lg font-semibold ml-2" numberOfLines={1} adjustsFontSizeToFit>
-                {t('disease.analyzing')}
-              </Text>
-            </View>
-          ) : (
-            <Text className="text-white text-lg font-semibold px-4" numberOfLines={1} adjustsFontSizeToFit>
-              {t('disease.analyzeButton')}
-            </Text>
-          )}
-        </TouchableOpacity>
+          {/* Premium Analyze Button */}
+          <TouchableOpacity
+            onPress={handleAnalyze}
+            disabled={!canAnalyze() || isAnalyzing}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={canAnalyze() && !isAnalyzing 
+                ? ['#22C55E', '#16A34A', '#15803D'] 
+                : ['#D1D5DB', '#9CA3AF']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                borderRadius: 20,
+                paddingVertical: 18,
+                paddingHorizontal: 24,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 12,
+                shadowColor: canAnalyze() && !isAnalyzing ? '#22C55E' : '#9CA3AF',
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.3,
+                shadowRadius: 12,
+                elevation: 8,
+              }}
+            >
+              {isAnalyzing ? (
+                <Animated.View style={{ 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  gap: 12,
+                  transform: [{ scale: pulseAnim }],
+                }}>
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <Text style={{
+                    color: '#FFFFFF',
+                    fontSize: 17,
+                    fontWeight: '700',
+                    letterSpacing: 0.5,
+                  }}>
+                    {t('disease.analyzing')}
+                  </Text>
+                </Animated.View>
+              ) : (
+                <>
+                  <Sparkles size={24} color="#FFFFFF" strokeWidth={2.5} />
+                  <Text style={{
+                    color: '#FFFFFF',
+                    fontSize: 17,
+                    fontWeight: '700',
+                    letterSpacing: 0.5,
+                  }}>
+                    {t('disease.analyzeButton')}
+                  </Text>
+                </>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
       </ScrollView>
     </View>
   );

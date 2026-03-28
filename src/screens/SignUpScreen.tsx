@@ -13,14 +13,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Sprout, ArrowLeft } from 'lucide-react-native';
 import { CustomInput, PasswordInput } from '../components/CustomInput';
 import { Dropdown } from '../components/Dropdown';
-import { INDIAN_STATES, FARMER_TYPES, LANGUAGES } from '../constants/data';
+import { INDIAN_STATES, FARMER_TYPES, LANGUAGES, INDIAN_DISTRICTS } from '../constants/data';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { localizeNumber, delocalizeNumber } from '../utils/numberLocalization';
 import {
   signUp,
-  signInWithGoogle,
   saveCurrentUserProfile,
   updateCurrentAuthProfile,
 } from '../services/auth';
@@ -61,11 +61,26 @@ export const SignUpScreen = () => {
     confirmPassword: '',
     state: '',
     district: '',
-    preferredLanguage: 'en',
+    preferredLanguage: i18n.language || 'en',
     farmerType: '',
     landSize: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
+
+  // Load saved language on mount
+  useEffect(() => {
+    const loadSavedLanguage = async () => {
+      try {
+        const { loadLanguage } = await import('../i18n/i18n');
+        await loadLanguage();
+        // Update preferredLanguage in form data to match current language
+        setFormData(prev => ({ ...prev, preferredLanguage: i18n.language || 'en' }));
+      } catch (error) {
+        console.error('Error loading language:', error);
+      }
+    };
+    loadSavedLanguage();
+  }, []);
 
   const tr = (key: string, fallback: string) => {
     try {
@@ -104,6 +119,7 @@ export const SignUpScreen = () => {
             ? tr('signUp.errors.passwordMismatch', 'Passwords do not match')
             : '';
       case 'state':
+      case 'district':
       case 'preferredLanguage':
       case 'farmerType':
       case 'landSize':
@@ -137,6 +153,7 @@ export const SignUpScreen = () => {
       'password',
       'confirmPassword',
       'state',
+      'district',
       'preferredLanguage',
       'farmerType',
       'landSize',
@@ -227,6 +244,7 @@ export const SignUpScreen = () => {
       'password',
       'confirmPassword',
       'state',
+      'district',
       'preferredLanguage',
       'farmerType',
       'landSize',
@@ -240,8 +258,7 @@ export const SignUpScreen = () => {
   // Change language when preferred language is selected
   useEffect(() => {
     if (formData.preferredLanguage) {
-      i18n.changeLanguage(formData.preferredLanguage);
-      // Save language preference
+      // Save language preference (which also changes the language)
       import('../i18n/i18n').then(({ saveLanguage }) => {
         saveLanguage(formData.preferredLanguage);
       });
@@ -251,157 +268,276 @@ export const SignUpScreen = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-white"
+      className="flex-1"
+      style={{ backgroundColor: '#FAFAFA' }}
     >
+      {/* Decorative Background Shapes */}
+      <View style={{
+        position: 'absolute',
+        top: -100,
+        right: -50,
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+        backgroundColor: '#E8F5E9',
+        opacity: 0.5,
+      }} />
+      <View style={{
+        position: 'absolute',
+        bottom: -80,
+        left: -60,
+        width: 250,
+        height: 250,
+        borderRadius: 125,
+        backgroundColor: '#F1F8E9',
+        opacity: 0.4,
+      }} />
+      
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ padding: 24, paddingBottom: Math.max(insets.bottom, 24) + 24 }}
+        contentContainerStyle={{ padding: 24, paddingTop: 60, paddingBottom: Math.max(insets.bottom, 24) + 24 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View className="mb-8 mt-4">
-          <Text className="text-3xl font-bold text-gray-900 mb-2">
-            {tr('signUp.title', 'Sign Up')}
-          </Text>
-        </View>
-
-        {/* Preferred Language Section - Moved to Top */}
-        <View className="mb-6">
-          <Dropdown
-            label={tr('signUp.preferredLanguage', 'Preferred Language')}
-            placeholder={tr('signUp.languagePlaceholder', 'Select language')}
-            value={
-              LANGUAGES.find((l) => l.value === formData.preferredLanguage)
-                ? (() => {
-                    try {
-                      const lang = LANGUAGES.find(
-                        (l) => l.value === formData.preferredLanguage
-                      );
-                      return lang ? t(lang.labelKey) : '';
-                    } catch {
-                      return '';
-                    }
-                  })()
-                : ''
-            }
-            options={LANGUAGES.map((lang) => {
-              try {
-                return t(lang.labelKey);
-              } catch {
-                return lang.value.toUpperCase();
-              }
-            })}
-            onSelect={(value) => {
-              try {
-                const selectedLang = LANGUAGES.find(
-                  (lang) => {
-                    try {
-                      return t(lang.labelKey) === value;
-                    } catch {
-                      return lang.value.toUpperCase() === value;
-                    }
-                  }
-                );
-                if (selectedLang) {
-                  handleFieldChange('preferredLanguage', selectedLang.value);
-                }
-              } catch (error) {
-                console.error('Language selection error:', error);
-              }
+        {/* Back Button - Professional Capsule Design */}
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          className="mb-8"
+          style={{
+            alignSelf: 'flex-start',
+            backgroundColor: '#D1F4E0',
+            paddingHorizontal: 18,
+            paddingVertical: 10,
+            borderRadius: 24,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            shadowColor: '#16A34A',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.12,
+            shadowRadius: 5,
+            elevation: 3,
+          }}
+        >
+          <ArrowLeft size={20} color="#16A34A" strokeWidth={2.5} />
+          <Text 
+            className="text-green-600 font-semibold" 
+            style={{ 
+              fontSize: 15, 
+              lineHeight: 20, 
+              letterSpacing: 0.3,
+              flexShrink: 0,
+              minWidth: 70,
             }}
-            error={errors.preferredLanguage}
-          />
+            numberOfLines={1}
+          >
+            {tr('signUp.back', 'ফিরে যান')}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Header - Innovative Design with Icon */}
+        <View className="mb-10">
+          <View style={{ marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <View style={{
+                width: 50,
+                height: 50,
+                borderRadius: 25,
+                backgroundColor: '#16A34A',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 12,
+                shadowColor: '#16A34A',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 6,
+              }}>
+                <Sprout size={26} color="white" strokeWidth={2.5} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text 
+                  className="text-gray-900 font-extrabold" 
+                  style={{ fontSize: 30, lineHeight: 36, letterSpacing: -0.5 }}
+                >
+                  {tr('signUp.title', 'Create Account')}
+                </Text>
+              </View>
+            </View>
+          </View>
         </View>
 
-        {/* Account Information Section */}
-        <View className="mb-6">
-          <Text className="text-xl font-semibold text-gray-800 mb-4">
+        {/* Form - Card Style */}
+        <View style={{
+          backgroundColor: 'white',
+          borderRadius: 20,
+          padding: 20,
+          marginBottom: 16,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 12,
+          elevation: 3,
+        }}>
+          {/* Account Information Section */}
+          <Text 
+            className="text-gray-800 font-bold" 
+            style={{ fontSize: 16, marginBottom: 12, letterSpacing: 0.3 }}
+          >
             {tr('signUp.accountInfo', 'Account Information')}
           </Text>
+          
+          <View style={{ gap: 8 }}>
+            <CustomInput
+              label={tr('signUp.fullName', 'Full Name')}
+              placeholder={tr('signUp.fullNamePlaceholder', 'Enter your full name')}
+              value={formData.fullName}
+              onChangeText={(value) => handleFieldChange('fullName', value)}
+              error={errors.fullName}
+            />
 
-          <CustomInput
-            label={tr('signUp.fullName', 'Full Name')}
-            placeholder={tr('signUp.fullNamePlaceholder', 'Enter your full name')}
-            value={formData.fullName}
-            onChangeText={(value) => handleFieldChange('fullName', value)}
-            error={errors.fullName}
-          />
+            <CustomInput
+              label={tr('signUp.mobileNumber', 'Mobile Number')}
+              placeholder={localizeNumber(tr('signUp.mobileNumberPlaceholder', 'Enter 10-digit mobile number'), i18n.language)}
+              value={localizeNumber(formData.mobileNumber, i18n.language)}
+              onChangeText={(value) => {
+                const delocalized = delocalizeNumber(value, i18n.language);
+                handleFieldChange('mobileNumber', delocalized);
+              }}
+              keyboardType="phone-pad"
+              maxLength={10}
+              error={errors.mobileNumber}
+            />
 
-          <CustomInput
-            label={tr('signUp.mobileNumber', 'Mobile Number')}
-            placeholder={localizeNumber(tr('signUp.mobileNumberPlaceholder', 'Enter 10-digit mobile number'), i18n.language)}
-            value={localizeNumber(formData.mobileNumber, i18n.language)}
-            onChangeText={(value) => {
-              const delocalized = delocalizeNumber(value, i18n.language);
-              handleFieldChange('mobileNumber', delocalized);
-            }}
-            keyboardType="phone-pad"
-            maxLength={10}
-            error={errors.mobileNumber}
-          />
+            <CustomInput
+              label={tr('signUp.email', 'Email')}
+              placeholder={tr('signUp.emailPlaceholder', 'Enter your email')}
+              value={formData.email}
+              onChangeText={(value) => handleFieldChange('email', value)}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              error={errors.email}
+            />
 
-          <CustomInput
-            label={tr('signUp.email', 'Email')}
-            placeholder={tr('signUp.emailPlaceholder', 'Enter your email')}
-            value={formData.email}
-            onChangeText={(value) => handleFieldChange('email', value)}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            error={errors.email}
-          />
+            <PasswordInput
+              label={tr('signUp.password', 'Password')}
+              placeholder={tr('signUp.passwordPlaceholder', 'Enter password (min 6 characters)')}
+              value={formData.password}
+              onChangeText={(value) => handleFieldChange('password', value)}
+              error={errors.password}
+            />
 
-          <PasswordInput
-            label={tr('signUp.password', 'Password')}
-            placeholder={tr('signUp.passwordPlaceholder', 'Enter password (min 6 characters)')}
-            value={formData.password}
-            onChangeText={(value) => handleFieldChange('password', value)}
-            error={errors.password}
-          />
+            <PasswordInput
+              label={tr('signUp.confirmPassword', 'Confirm Password')}
+              placeholder={tr('signUp.confirmPasswordPlaceholder', 'Re-enter your password')}
+              value={formData.confirmPassword}
+              onChangeText={(value) =>
+                handleFieldChange('confirmPassword', value)
+              }
+              error={errors.confirmPassword}
+            />
+          </View>
 
-          <PasswordInput
-            label={tr('signUp.confirmPassword', 'Confirm Password')}
-            placeholder={tr('signUp.confirmPasswordPlaceholder', 'Re-enter your password')}
-            value={formData.confirmPassword}
-            onChangeText={(value) =>
-              handleFieldChange('confirmPassword', value)
-            }
-            error={errors.confirmPassword}
-          />
-        </View>
-
-        {/* Personal Information Section */}
-        <View className="mb-6">
-          <Text className="text-xl font-semibold text-gray-800 mb-4">
+          {/* Personal Information Section */}
+          <Text 
+            className="text-gray-800 font-bold" 
+            style={{ fontSize: 16, marginBottom: 12, marginTop: 16, letterSpacing: 0.3 }}
+          >
             {tr('signUp.personalInfo', 'Personal Information')}
           </Text>
 
           <Dropdown
             label={tr('signUp.state', 'State')}
             placeholder={tr('signUp.statePlaceholder', 'Select your state')}
-            value={formData.state}
-            options={INDIAN_STATES}
-            onSelect={(value) =>
-              handleFieldChange(
-                'state',
-                typeof value === 'string' ? value : value.value
-              )
+            value={
+              INDIAN_STATES.find((s) => s.value === formData.state)
+                ? (() => {
+                    try {
+                      const state = INDIAN_STATES.find((s) => s.value === formData.state);
+                      return state ? t(state.labelKey) : '';
+                    } catch {
+                      return '';
+                    }
+                  })()
+                : ''
             }
+            options={INDIAN_STATES.map((state) => {
+              try {
+                return t(state.labelKey);
+              } catch {
+                return state.value;
+              }
+            })}
+            onSelect={(value) => {
+              try {
+                const selectedState = INDIAN_STATES.find(
+                  (state) => {
+                    try {
+                      return t(state.labelKey) === value;
+                    } catch {
+                      return state.value === value;
+                    }
+                  }
+                );
+                if (selectedState) {
+                  handleFieldChange('state', selectedState.value);
+                }
+              } catch (error) {
+                console.error('State selection error:', error);
+              }
+            }}
             error={errors.state}
           />
 
-          <CustomInput
+          <Dropdown
             label={tr('signUp.district', 'District')}
-            placeholder={tr('signUp.districtPlaceholder', 'Enter your district')}
-            value={formData.district}
-            onChangeText={(value) => handleFieldChange('district', value)}
-            editable={!!formData.state}
+            placeholder={tr('signUp.districtPlaceholder', 'Select your district')}
+            value={
+              INDIAN_DISTRICTS.find((d) => d.value === formData.district)
+                ? (() => {
+                    try {
+                      const district = INDIAN_DISTRICTS.find((d) => d.value === formData.district);
+                      return district ? t(district.labelKey) : '';
+                    } catch {
+                      return '';
+                    }
+                  })()
+                : ''
+            }
+            options={INDIAN_DISTRICTS.map((district) => {
+              try {
+                return t(district.labelKey);
+              } catch {
+                return district.value;
+              }
+            })}
+            onSelect={(value) => {
+              try {
+                const selectedDistrict = INDIAN_DISTRICTS.find(
+                  (district) => {
+                    try {
+                      return t(district.labelKey) === value;
+                    } catch {
+                      return district.value === value;
+                    }
+                  }
+                );
+                if (selectedDistrict) {
+                  handleFieldChange('district', selectedDistrict.value);
+                }
+              } catch (error) {
+                console.error('District selection error:', error);
+              }
+            }}
+            error={errors.district}
+            disabled={!formData.state}
           />
-        </View>
 
-        {/* Farming Information Section */}
-        <View className="mb-8">
-          <Text className="text-xl font-semibold text-gray-800 mb-4">
+          {/* Farming Information Section */}
+          <Text 
+            className="text-gray-800 font-bold" 
+            style={{ fontSize: 16, marginBottom: 12, marginTop: 16, letterSpacing: 0.3 }}
+          >
             {tr('signUp.farmingInfo', 'Farming Information')}
           </Text>
 

@@ -15,7 +15,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { useTranslation } from 'react-i18next';
-import { getGeminiChatResponse } from '../services/gemini';
 import { FormattedText } from './FormattedText';
 
 interface ChatMessage {
@@ -31,7 +30,7 @@ interface ChatbotModalProps {
 }
 
 export const ChatbotModal: React.FC<ChatbotModalProps> = ({ visible, onClose }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const scrollViewRef = useRef<ScrollView>(null);
   const isMountedRef = useRef(true);
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -86,68 +85,6 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ visible, onClose }) 
     }
   }, [messages, isTyping]);
 
-  const generateResponse = (input: string): string => {
-    const lowerInput = input.toLowerCase();
-
-    // Greetings
-    if (lowerInput.match(/\b(hi|hello|hey|namaste)\b/)) {
-      return t('chatbot.responses.greeting');
-    }
-
-    // Crop-related queries
-    if (lowerInput.includes('crop') || lowerInput.includes('plant') || lowerInput.includes('farming') || lowerInput.includes('cultivation')) {
-      return t('chatbot.responses.crop');
-    }
-
-    // Disease/Pest queries
-    if (lowerInput.includes('disease') || lowerInput.includes('pest') || lowerInput.includes('sick') || lowerInput.includes('problem') || lowerInput.includes('infection')) {
-      return t('chatbot.responses.disease');
-    }
-
-    // Weather queries
-    if (lowerInput.includes('weather') || lowerInput.includes('rain') || lowerInput.includes('temperature') || lowerInput.includes('humidity')) {
-      return t('chatbot.responses.weather');
-    }
-
-    // Document queries
-    if (lowerInput.includes('document') || lowerInput.includes('paper') || lowerInput.includes('certificate') || lowerInput.includes('form')) {
-      return t('chatbot.responses.document');
-    }
-
-    // Fertilizer queries
-    if (lowerInput.includes('fertilizer') || lowerInput.includes('manure') || lowerInput.includes('compost') || lowerInput.includes('nutrients')) {
-      return t('chatbot.responses.fertilizer');
-    }
-
-    // Irrigation/Water queries
-    if (lowerInput.includes('water') || lowerInput.includes('irrigation') || lowerInput.includes('watering')) {
-      return t('chatbot.responses.water');
-    }
-
-    // Harvest queries
-    if (lowerInput.includes('harvest') || lowerInput.includes('yield') || lowerInput.includes('produce')) {
-      return t('chatbot.responses.harvest');
-    }
-
-    // Price/Market queries
-    if (lowerInput.includes('price') || lowerInput.includes('market') || lowerInput.includes('sell')) {
-      return t('chatbot.responses.price');
-    }
-
-    // Help/Features
-    if (lowerInput.includes('help') || lowerInput.includes('feature') || lowerInput.includes('how') || lowerInput.includes('what can')) {
-      return t('chatbot.responses.help');
-    }
-
-    // Thank you
-    if (lowerInput.includes('thank') || lowerInput.includes('thanks')) {
-      return t('chatbot.responses.thanks');
-    }
-
-    // Default response
-    return t('chatbot.responses.default');
-  };
-
   const startRecording = async () => {
     // Voice input temporarily disabled - please type your message
     Alert.alert(
@@ -168,14 +105,34 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ visible, onClose }) 
       return;
     }
 
-    const languageCode = i18n.language === 'bn' ? 'bn-IN' : i18n.language === 'hi' ? 'hi-IN' : 'en-US';
+    // Detect language from text content
+    const hasBengali = /[\u0980-\u09FF]/.test(text);
+    const hasHindi = /[\u0900-\u097F]/.test(text);
+    
+    let languageCode = 'en-US';
+    
+    if (hasBengali) {
+      languageCode = 'bn-IN';
+    } else if (hasHindi) {
+      languageCode = 'hi-IN';
+    }
+
+    console.log('Speaking with language:', languageCode);
 
     setIsSpeaking(true);
+    
     Speech.speak(text, {
       language: languageCode,
-      onDone: () => setIsSpeaking(false),
-      onStopped: () => setIsSpeaking(false),
-      onError: () => setIsSpeaking(false),
+      onDone: () => {
+        setIsSpeaking(false);
+      },
+      onStopped: () => {
+        setIsSpeaking(false);
+      },
+      onError: (error) => {
+        console.error('Speech error:', error);
+        setIsSpeaking(false);
+      },
     });
   };
 
@@ -195,16 +152,30 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ visible, onClose }) 
     setIsTyping(true);
 
     try {
-      const historyForGemini = messages.slice(-12).map((m) => ({
-        role: m.isUser ? ('user' as const) : ('model' as const),
-        text: m.text,
-      }));
-
-      const reply = await getGeminiChatResponse({
-        userText,
-        language: i18n.language,
-        history: historyForGemini,
+      console.log('Sending request to RAG:', userText);
+      
+      const response = await fetch('https://rag-xru1.onrender.com/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          query: userText,
+        }),
       });
+
+      console.log('Response status:', response.status);
+
+      const responseText = await response.text();
+      console.log('Response text:', responseText);
+
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${responseText}`);
+      }
+
+      const data = JSON.parse(responseText);
+      const reply = data.answer || data.response || data.message || JSON.stringify(data);
 
       if (!isMountedRef.current) return;
 
@@ -215,22 +186,13 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ visible, onClose }) 
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, botMessage]);
-    } catch (err) {
-      console.error('Gemini response error:', err);
+    } catch (err: any) {
+      console.error('RAG response error:', err);
       if (!isMountedRef.current) return;
-
-      const fallbackMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        text: generateResponse(userText),
-        isUser: false,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, fallbackMessage]);
 
       Alert.alert(
         t('chatbot.error') || 'Error',
-        t('chatbot.aiError') ||
-        'Could not reach AI service. Showing a fallback response.'
+        `Could not reach AI service: ${err.message}`
       );
     } finally {
       if (isMountedRef.current) setIsTyping(false);

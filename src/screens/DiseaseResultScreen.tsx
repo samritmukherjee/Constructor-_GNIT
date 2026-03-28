@@ -1,18 +1,19 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   Image,
+  Animated,
+  StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, Bug, AlertTriangle, Heart, TrendingUp, Pill, Shield } from 'lucide-react-native';
+import { ArrowLeft, Bug, AlertTriangle, Heart, TrendingUp, Pill, Shield, Sparkles, CheckCircle } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-// @ts-ignore
-import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type DiseaseResultScreenNavigationProp = NativeStackNavigationProp<
@@ -33,6 +34,41 @@ export const DiseaseResultScreen = () => {
   
   const { cropImage, cropType, cropAge, weather, diseaseResult } = route.params;
 
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const imageScale = useRef(new Animated.Value(0.9)).current;
+  const cardScale = useRef(new Animated.Value(0.95)).current;
+
+  // Entrance animations
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.spring(imageScale, {
+        toValue: 1,
+        tension: 40,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.spring(cardScale, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   // Use Gemini AI results if available, otherwise use hardcoded demo data
   const diseaseData = diseaseResult || {
     diseaseName: 'Leaf Blight',
@@ -48,33 +84,33 @@ export const DiseaseResultScreen = () => {
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'low':
-        return 'bg-green-100 text-green-700';
+        return { bg: '#DCFCE7', border: '#BBF7D0', text: '#15803D' };
       case 'medium':
-        return 'bg-yellow-100 text-yellow-700';
+        return { bg: '#FEF3C7', border: '#FDE68A', text: '#B45309' };
       case 'high':
-        return 'bg-red-100 text-red-700';
+        return { bg: '#FEE2E2', border: '#FECACA', text: '#991B1B' };
       default:
-        return 'bg-gray-100 text-gray-700';
+        return { bg: '#F3F4F6', border: '#E5E7EB', text: '#4B5563' };
     }
   };
 
   const getRecoveryColor = (recovery: string) => {
     switch (recovery) {
       case 'high':
-        return 'text-green-600';
+        return '#22C55E';
       case 'medium':
-        return 'text-yellow-600';
+        return '#F59E0B';
       case 'low':
-        return 'text-red-600';
+        return '#EF4444';
       default:
-        return 'text-gray-600';
+        return '#6B7280';
     }
   };
 
-  const getHealthBarColor = (percentage: number) => {
-    if (percentage >= 70) return 'bg-green-500';
-    if (percentage >= 40) return 'bg-yellow-500';
-    return 'bg-red-500';
+  const getHealthBarGradient = (percentage: number): [string, string] => {
+    if (percentage >= 70) return ['#22C55E', '#16A34A'];
+    if (percentage >= 40) return ['#F59E0B', '#D97706'];
+    return ['#EF4444', '#DC2626'];
   };
 
   const handleBackToDashboard = () => {
@@ -86,249 +122,704 @@ export const DiseaseResultScreen = () => {
   };
 
   return (
-    <View className="flex-1 bg-white">
+    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+      {/* Decorative Background Elements */}
+      <View style={StyleSheet.absoluteFill}>
+        <View style={{
+          position: 'absolute',
+          top: -100,
+          right: -70,
+          width: 280,
+          height: 280,
+          borderRadius: 140,
+          backgroundColor: '#DCFCE7',
+          opacity: 0.25,
+        }} />
+        <View style={{
+          position: 'absolute',
+          bottom: -80,
+          left: -50,
+          width: 240,
+          height: 240,
+          borderRadius: 120,
+          backgroundColor: '#D1FAE5',
+          opacity: 0.2,
+        }} />
+        <View style={{
+          position: 'absolute',
+          top: '35%',
+          right: -30,
+          width: 120,
+          height: 120,
+          borderRadius: 60,
+          backgroundColor: '#BBF7D0',
+          opacity: 0.18,
+        }} />
+      </View>
+
       <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ 
-          padding: 24, 
-          paddingBottom: Math.max(insets.bottom, 24) + 24 
-        }}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) + 24 }}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View className="mb-8">
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            className="mb-6 w-10 h-10 items-center justify-center bg-gray-100 rounded-full"
-          >
-            <ArrowLeft size={20} color="#000" strokeWidth={2.5} />
-          </TouchableOpacity>
-          <Text className="text-3xl font-bold text-gray-900 mb-2">
-            {t('diseaseResult.title')}
-          </Text>
-          <View className="w-16 h-1 bg-green-600 rounded-full" />
-        </View>
-
-        {/* Crop Image */}
-        {cropImage && (
-          <View className="mb-8">
-            <View className="bg-white rounded-2xl p-2 shadow-md">
-              <Image
-                source={{ uri: cropImage }}
-                className="w-full h-56 rounded-xl"
-                resizeMode="cover"
-              />
-            </View>
-          </View>
-        )}
-
-        {/* Analysis Details Card */}
-        <View className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-5 mb-6">
-          <Text className="text-blue-900 font-bold text-lg mb-3">
-            {t('diseaseResult.analysisDetails')}
-          </Text>
-          <View className="space-y-2">
-            <Text className="text-blue-800 text-base">
-              • {t('disease.cropType')}: {cropType || t('common.unknown')}
-            </Text>
-            {cropAge && (
-              <Text className="text-blue-800 text-base">
-                • {t('disease.cropAge')}: {cropAge} {t('disease.days')}
+        {/* Premium Gradient Header */}
+        <LinearGradient
+          colors={['#22C55E', '#16A34A', '#15803D']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            paddingTop: insets.top + 16,
+            paddingBottom: 32,
+            paddingHorizontal: 24,
+            borderBottomLeftRadius: 28,
+            borderBottomRightRadius: 28,
+            shadowColor: '#16A34A',
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.3,
+            shadowRadius: 16,
+            elevation: 12,
+            marginBottom: 24,
+          }}
+        >
+          <Animated.View style={{ opacity: fadeAnim }}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.7}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                paddingHorizontal: 18,
+                paddingVertical: 10,
+                borderRadius: 24,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.12,
+                shadowRadius: 5,
+                elevation: 3,
+                alignSelf: 'flex-start',
+                marginBottom: 20,
+              }}
+            >
+              <ArrowLeft size={20} color="#16A34A" strokeWidth={2.5} />
+              <Text style={{ 
+                color: '#16A34A',
+                fontWeight: '600',
+                fontSize: 15,
+              }}>
+                {(() => {
+                  try {
+                    const translated = t('common.back');
+                    return translated === 'common.back' ? 'Back' : translated;
+                  } catch {
+                    return 'Back';
+                  }
+                })()}
               </Text>
-            )}
-            <Text className="text-blue-800 text-base">
-              • {t('disease.recentWeather')}: {t(`disease.weatherConditions.${weather}`)}
-            </Text>
-          </View>
-        </View>
+            </TouchableOpacity>
 
-        {/* Warning Message - Show if not a crop */}
-        {diseaseData.isNotCrop && (
-          <View className="bg-orange-50 border-2 border-orange-300 rounded-2xl p-6 mb-6">
-            <View className="flex-row items-start">
-              <View className="bg-orange-200 rounded-full w-12 h-12 items-center justify-center mr-4 mt-1">
-                <AlertTriangle size={28} color="#EA580C" strokeWidth={2.5} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+              <View style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                borderRadius: 20,
+                padding: 14,
+              }}>
+                <Sparkles size={36} color="#FFFFFF" strokeWidth={2.5} />
               </View>
-              <View className="flex-1">
-                <Text className="text-orange-900 font-bold text-xl mb-3">
-                  {t('diseaseResult.warning')}
+              <View style={{ flex: 1 }}>
+                <Text style={{
+                  fontSize: 30,
+                  fontWeight: 'bold',
+                  color: '#FFFFFF',
+                  letterSpacing: 0.5,
+                }}>
+                  {t('diseaseResult.title')}
                 </Text>
-                <Text className="text-orange-800 text-base leading-6">
-                  {diseaseData.warningMessage || t('diseaseResult.notCropWarning')}
+              </View>
+            </View>
+          </Animated.View>
+        </LinearGradient>
+
+        <Animated.View style={{ 
+          paddingHorizontal: 24,
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        }}>
+          {/* Crop Image with Premium Card */}
+          {cropImage && (
+            <Animated.View style={{ 
+              marginBottom: 24,
+              transform: [{ scale: imageScale }],
+            }}>
+              <View style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: 24,
+                padding: 12,
+                borderWidth: 2,
+                borderColor: '#DCFCE7',
+                shadowColor: '#22C55E',
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.2,
+                shadowRadius: 16,
+                elevation: 10,
+              }}>
+                <Image
+                  source={{ uri: cropImage }}
+                  style={{
+                    width: '100%',
+                    height: 240,
+                    borderRadius: 18,
+                  }}
+                  resizeMode="cover"
+                />
+              </View>
+            </Animated.View>
+          )}
+
+          {/* Analysis Details Card */}
+          <Animated.View style={{ 
+            transform: [{ scale: cardScale }],
+          }}>
+            <View style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 20,
+              padding: 20,
+              marginBottom: 20,
+              borderWidth: 2,
+              borderColor: '#DBEAFE',
+              shadowColor: '#3B82F6',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 12,
+              elevation: 6,
+            }}>
+              <View style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                marginBottom: 16 
+              }}>
+                <View style={{
+                  backgroundColor: '#DBEAFE',
+                  borderRadius: 16,
+                  padding: 12,
+                  marginRight: 12,
+                }}>
+                  <CheckCircle size={24} color="#3B82F6" strokeWidth={2.5} />
+                </View>
+                <Text style={{
+                  fontSize: 18,
+                  fontWeight: 'bold',
+                  color: '#1E40AF',
+                }}>
+                  {t('diseaseResult.analysisDetails')}
                 </Text>
-                <TouchableOpacity
-                  onPress={handleScanAnother}
-                  className="bg-orange-600 rounded-xl py-3 mt-4 items-center"
-                  activeOpacity={0.8}
+              </View>
+              <View style={{ gap: 10 }}>
+                <Text style={{
+                  fontSize: 15,
+                  color: '#1E3A8A',
+                  lineHeight: 22,
+                }}>
+                  • {t('disease.cropType')}: <Text style={{ fontWeight: '700' }}>{cropType || t('common.unknown')}</Text>
+                </Text>
+                {cropAge && (
+                  <Text style={{
+                    fontSize: 15,
+                    color: '#1E3A8A',
+                    lineHeight: 22,
+                  }}>
+                    • {t('disease.cropAge')}: <Text style={{ fontWeight: '700' }}>{cropAge} {t('disease.days')}</Text>
+                  </Text>
+                )}
+                <Text style={{
+                  fontSize: 15,
+                  color: '#1E3A8A',
+                  lineHeight: 22,
+                }}>
+                  • {t('disease.recentWeather')}: <Text style={{ fontWeight: '700' }}>{t(`disease.weatherConditions.${weather}`)}</Text>
+                </Text>
+              </View>
+            </View>
+          </Animated.View>
+
+          {/* Warning Message - Show if not a crop */}
+          {diseaseData.isNotCrop && (
+            <View style={{
+              backgroundColor: '#FFF7ED',
+              borderRadius: 20,
+              padding: 20,
+              marginBottom: 20,
+              borderWidth: 2,
+              borderColor: '#FDBA74',
+              shadowColor: '#F97316',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.15,
+              shadowRadius: 12,
+              elevation: 6,
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                <LinearGradient
+                  colors={['#F97316', '#EA580C']}
+                  style={{
+                    borderRadius: 16,
+                    width: 52,
+                    height: 52,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 16,
+                    marginTop: 4,
+                  }}
                 >
-                  <Text className="text-white text-base font-bold">
-                    {t('diseaseResult.uploadNewImage')}
+                  <AlertTriangle size={28} color="#FFFFFF" strokeWidth={2.5} />
+                </LinearGradient>
+                <View style={{ flex: 1 }}>
+                  <Text style={{
+                    color: '#9A3412',
+                    fontWeight: 'bold',
+                    fontSize: 19,
+                    marginBottom: 12,
+                  }}>
+                    {t('diseaseResult.warning')}
                   </Text>
-                </TouchableOpacity>
+                  <Text style={{
+                    color: '#C2410C',
+                    fontSize: 15,
+                    lineHeight: 22,
+                    marginBottom: 16,
+                  }}>
+                    {diseaseData.warningMessage || t('diseaseResult.notCropWarning')}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={handleScanAnother}
+                    activeOpacity={0.85}
+                  >
+                    <LinearGradient
+                      colors={['#F97316', '#EA580C']}
+                      style={{
+                        borderRadius: 16,
+                        paddingVertical: 14,
+                        alignItems: 'center',
+                        shadowColor: '#F97316',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 8,
+                        elevation: 5,
+                      }}
+                    >
+                      <Text style={{
+                        color: '#FFFFFF',
+                        fontSize: 16,
+                        fontWeight: 'bold',
+                      }}>
+                        {t('diseaseResult.uploadNewImage')}
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
-          </View>
-        )}
+          )}
 
-        {/* Only show disease analysis if it's a crop */}
-        {!diseaseData.isNotCrop && (
-          <>
-            {/* Detected Disease Card */}
-            <View className="bg-white border-2 border-red-200 rounded-2xl p-5 mb-6 shadow-lg">
-              <View className="flex-row items-center">
-                <View className="bg-red-100 rounded-2xl w-14 h-14 items-center justify-center mr-4">
-                  <Bug size={28} color="#DC2626" strokeWidth={2.5} />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">
-                    {t('diseaseResult.detectedDisease')}
-                  </Text>
-                  <Text className="text-gray-900 text-xl font-bold leading-tight">
-                    {diseaseData.diseaseName}
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Severity Card */}
-            <View className="bg-white rounded-2xl p-5 mb-6 shadow-md">
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center flex-1">
-                  <View className="bg-orange-100 rounded-2xl w-12 h-12 items-center justify-center mr-4">
-                    <AlertTriangle size={24} color="#F97316" strokeWidth={2.5} />
+          {/* Only show disease analysis if it's a crop */}
+          {!diseaseData.isNotCrop && (
+            <>
+              {/* Detected Disease Card with Gradient */}
+              <View style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: 24,
+                padding: 22,
+                marginBottom: 18,
+                borderWidth: 2,
+                borderColor: '#FECACA',
+                shadowColor: '#DC2626',
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.15,
+                shadowRadius: 14,
+                elevation: 8,
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <LinearGradient
+                    colors={['#DC2626', '#991B1B']}
+                    style={{
+                      borderRadius: 20,
+                      width: 60,
+                      height: 60,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: 16,
+                      shadowColor: '#DC2626',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 8,
+                    }}
+                  >
+                    <Bug size={30} color="#FFFFFF" strokeWidth={2.5} />
+                  </LinearGradient>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{
+                      color: '#9CA3AF',
+                      fontSize: 11,
+                      fontWeight: '700',
+                      textTransform: 'uppercase',
+                      letterSpacing: 1.2,
+                      marginBottom: 6,
+                    }}>
+                      {t('diseaseResult.detectedDisease')}
+                    </Text>
+                    <Text style={{
+                      color: '#1F2937',
+                      fontSize: 21,
+                      fontWeight: 'bold',
+                      lineHeight: 28,
+                    }}>
+                      {diseaseData.diseaseName}
+                    </Text>
                   </View>
-                  <Text className="text-gray-700 text-base font-semibold">
+                </View>
+              </View>
+
+              {/* Severity & Recovery Cards Row */}
+              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 18 }}>
+                {/* Severity Card */}
+                <View style={{
+                  flex: 1,
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 20,
+                  padding: 18,
+                  borderWidth: 2,
+                  borderColor: getSeverityColor(diseaseData.severity).border,
+                  shadowColor: '#F97316',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 10,
+                  elevation: 5,
+                }}>
+                  <View style={{
+                    backgroundColor: getSeverityColor(diseaseData.severity).bg,
+                    borderRadius: 14,
+                    width: 44,
+                    height: 44,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 14,
+                  }}>
+                    <AlertTriangle size={22} color={getSeverityColor(diseaseData.severity).text} strokeWidth={2.5} />
+                  </View>
+                  <Text style={{
+                    color: '#6B7280',
+                    fontSize: 12,
+                    fontWeight: '600',
+                    marginBottom: 6,
+                  }}>
                     {t('diseaseResult.severity')}
                   </Text>
-                </View>
-                <View
-                  className={`px-5 py-2.5 rounded-xl ${getSeverityColor(
-                    diseaseData.severity
-                  )}`}
-                >
-                  <Text className="font-bold text-sm uppercase tracking-wide">
+                  <Text style={{
+                    color: getSeverityColor(diseaseData.severity).text,
+                    fontSize: 15,
+                    fontWeight: 'bold',
+                    textTransform: 'uppercase',
+                  }}>
                     {t(`diseaseResult.severityLevels.${diseaseData.severity}`)}
                   </Text>
                 </View>
-              </View>
-            </View>
 
-            {/* Crop Health Bar */}
-            <View className="bg-white rounded-2xl p-5 mb-6 shadow-md">
-              <View className="flex-row items-center mb-4">
-                <View className="bg-green-100 rounded-2xl w-12 h-12 items-center justify-center mr-4">
-                  <Heart size={24} color="#22C55E" strokeWidth={2.5} fill="#22C55E" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">
-                    {t('diseaseResult.cropHealth')}
-                  </Text>
-                  <Text className="text-gray-900 text-2xl font-bold">
-                    {diseaseData.healthPercentage}%
-                  </Text>
-                </View>
-              </View>
-              
-              {/* Progress Bar */}
-              <View className="bg-gray-200 h-4 rounded-full overflow-hidden">
-                <View
-                  className={`h-full ${getHealthBarColor(
-                    diseaseData.healthPercentage
-                  )} rounded-full`}
-                  style={{ width: `${diseaseData.healthPercentage}%` }}
-                />
-              </View>
-            </View>
-
-            {/* Recovery Chance Card */}
-            <View className="bg-white rounded-2xl p-5 mb-6 shadow-md">
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center" style={{ flex: 0, flexShrink: 1 }}>
-                  <View className="bg-purple-100 rounded-2xl w-12 h-12 items-center justify-center mr-4">
-                    <TrendingUp size={24} color="#A855F7" strokeWidth={2.5} />
+                {/* Recovery Chance Card */}
+                <View style={{
+                  flex: 1,
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 20,
+                  padding: 18,
+                  borderWidth: 2,
+                  borderColor: '#E9D5FF',
+                  shadowColor: '#A855F7',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 10,
+                  elevation: 5,
+                }}>
+                  <View style={{
+                    backgroundColor: '#F3E8FF',
+                    borderRadius: 14,
+                    width: 44,
+                    height: 44,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 14,
+                  }}>
+                    <TrendingUp size={22} color="#A855F7" strokeWidth={2.5} />
                   </View>
-                  <Text className="text-gray-700 text-base font-semibold">
+                  <Text style={{
+                    color: '#6B7280',
+                    fontSize: 12,
+                    fontWeight: '600',
+                    marginBottom: 6,
+                  }}>
                     {t('diseaseResult.recoveryChance')}
                   </Text>
+                  <Text style={{
+                    color: getRecoveryColor(diseaseData.recoveryChance),
+                    fontSize: 15,
+                    fontWeight: 'bold',
+                    textTransform: 'uppercase',
+                  }}>
+                    {t(`diseaseResult.recoveryChances.${diseaseData.recoveryChance}`)}
+                  </Text>
                 </View>
-                <Text
-                  className={`text-xl font-bold uppercase tracking-wide ml-4 ${getRecoveryColor(
-                    diseaseData.recoveryChance
-                  )}`}
-                  numberOfLines={1}
-                >
-                  {t(`diseaseResult.recoveryChances.${diseaseData.recoveryChance}`)}
+              </View>
+
+              {/* Crop Health Card with Gradient Progress Bar */}
+              <View style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: 24,
+                padding: 22,
+                marginBottom: 24,
+                borderWidth: 2,
+                borderColor: '#D1FAE5',
+                shadowColor: '#22C55E',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.12,
+                shadowRadius: 12,
+                elevation: 6,
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 18 }}>
+                  <LinearGradient
+                    colors={['#22C55E', '#16A34A']}
+                    style={{
+                      borderRadius: 18,
+                      width: 56,
+                      height: 56,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: 16,
+                    }}
+                  >
+                    <Heart size={26} color="#FFFFFF" strokeWidth={2.5} fill="#FFFFFF" />
+                  </LinearGradient>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{
+                      color: '#9CA3AF',
+                      fontSize: 11,
+                      fontWeight: '700',
+                      textTransform: 'uppercase',
+                      letterSpacing: 1.2,
+                      marginBottom: 6,
+                    }}>
+                      {t('diseaseResult.cropHealth')}
+                    </Text>
+                    <Text style={{
+                      color: '#1F2937',
+                      fontSize: 28,
+                      fontWeight: 'bold',
+                    }}>
+                      {diseaseData.healthPercentage}%
+                    </Text>
+                  </View>
+                </View>
+                
+                {/* Gradient Progress Bar */}
+                <View style={{
+                  backgroundColor: '#F3F4F6',
+                  height: 14,
+                  borderRadius: 10,
+                  overflow: 'hidden',
+                }}>
+                  <LinearGradient
+                    colors={getHealthBarGradient(diseaseData.healthPercentage)}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={{
+                      height: '100%',
+                      width: `${diseaseData.healthPercentage}%`,
+                      borderRadius: 10,
+                    }}
+                  />
+                </View>
+              </View>
+
+              {/* Recommendations Section */}
+              <View style={{ marginBottom: 24 }}>
+                <View style={{ 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  marginBottom: 20 
+                }}>
+                  <View style={{
+                    width: 5,
+                    height: 32,
+                    backgroundColor: '#22C55E',
+                    borderRadius: 4,
+                    marginRight: 12,
+                  }} />
+                  <Text style={{
+                    fontSize: 24,
+                    fontWeight: 'bold',
+                    color: '#111827',
+                  }}>
+                    {t('diseaseResult.recommendations')}
+                  </Text>
+                </View>
+
+                {/* Treatment Card */}
+                <View style={{
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 24,
+                  padding: 20,
+                  marginBottom: 16,
+                  borderWidth: 2,
+                  borderColor: '#D1FAE5',
+                  shadowColor: '#22C55E',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.12,
+                  shadowRadius: 12,
+                  elevation: 6,
+                }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                    <LinearGradient
+                      colors={['#22C55E', '#16A34A']}
+                      style={{
+                        borderRadius: 16,
+                        width: 48,
+                        height: 48,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: 16,
+                        marginTop: 4,
+                      }}
+                    >
+                      <Pill size={24} color="#FFFFFF" strokeWidth={2.5} />
+                    </LinearGradient>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{
+                        color: '#15803D',
+                        fontWeight: 'bold',
+                        fontSize: 18,
+                        marginBottom: 12,
+                      }}>
+                        {t('diseaseResult.treatment')}
+                      </Text>
+                      <Text style={{
+                        color: '#166534',
+                        fontSize: 15,
+                        lineHeight: 23,
+                      }}>
+                        {diseaseData.treatment}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Prevention Card */}
+                <View style={{
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 24,
+                  padding: 20,
+                  borderWidth: 2,
+                  borderColor: '#DBEAFE',
+                  shadowColor: '#3B82F6',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.12,
+                  shadowRadius: 12,
+                  elevation: 6,
+                }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                    <LinearGradient
+                      colors={['#3B82F6', '#2563EB']}
+                      style={{
+                        borderRadius: 16,
+                        width: 48,
+                        height: 48,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: 16,
+                        marginTop: 4,
+                      }}
+                    >
+                      <Shield size={24} color="#FFFFFF" strokeWidth={2.5} />
+                    </LinearGradient>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{
+                        color: '#1E40AF',
+                        fontWeight: 'bold',
+                        fontSize: 18,
+                        marginBottom: 12,
+                      }}>
+                        {t('diseaseResult.prevention')}
+                      </Text>
+                      <Text style={{
+                        color: '#1E3A8A',
+                        fontSize: 15,
+                        lineHeight: 23,
+                      }}>
+                        {diseaseData.prevention}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </>
+          )}
+
+          {/* Action Buttons */}
+          <View style={{ gap: 14 }}>
+            <TouchableOpacity
+              onPress={handleBackToDashboard}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={['#22C55E', '#16A34A', '#15803D']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  borderRadius: 20,
+                  paddingVertical: 18,
+                  alignItems: 'center',
+                  shadowColor: '#22C55E',
+                  shadowOffset: { width: 0, height: 6 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 12,
+                  elevation: 8,
+                }}
+              >
+                <Text style={{
+                  color: '#FFFFFF',
+                  fontSize: 17,
+                  fontWeight: 'bold',
+                  letterSpacing: 0.5,
+                }}>
+                  {t('diseaseResult.backToDashboard')}
                 </Text>
-              </View>
-            </View>
+              </LinearGradient>
+            </TouchableOpacity>
 
-            {/* Recommendations Section */}
-            <View className="mb-8">
-              <View className="flex-row items-center mb-5">
-                <View className="w-1 h-7 bg-green-600 rounded-full mr-3" />
-                <Text className="text-2xl font-bold text-gray-900">
-                  {t('diseaseResult.recommendations')}
-                </Text>
-              </View>
-
-              {/* Treatment Card */}
-              <View className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-5 mb-5">
-                <View className="flex-row items-start">
-                  <View className="bg-green-600 rounded-xl w-10 h-10 items-center justify-center mr-4 mt-1">
-                    <Pill size={22} color="#FFFFFF" strokeWidth={2.5} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-green-900 font-bold text-lg mb-3">
-                      {t('diseaseResult.treatment')}
-                    </Text>
-                    <Text className="text-green-800 text-base leading-6">
-                      {diseaseData.treatment}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Prevention Card */}
-              <View className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-5">
-                <View className="flex-row items-start">
-                  <View className="bg-blue-600 rounded-xl w-10 h-10 items-center justify-center mr-4 mt-1">
-                    <Shield size={22} color="#FFFFFF" strokeWidth={2.5} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-blue-900 font-bold text-lg mb-3">
-                      {t('diseaseResult.prevention')}
-                    </Text>
-                    <Text className="text-blue-800 text-base leading-6">
-                      {diseaseData.prevention}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-          </>
-        )}
-
-        {/* Action Buttons */}
-        <View className="space-y-4">
-          <TouchableOpacity
-            onPress={handleBackToDashboard}
-            className="bg-green-600 rounded-2xl py-4 items-center shadow-md"
-            activeOpacity={0.8}
-          >
-            <Text className="text-white text-lg font-bold">
-              {t('diseaseResult.backToDashboard')}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={handleScanAnother}
-            className="bg-white border-2 border-green-600 rounded-2xl py-4 items-center shadow-sm"
-            activeOpacity={0.8}
-          >
-            <Text className="text-green-600 text-lg font-bold">
-              {t('diseaseResult.scanAnother')}
-            </Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              onPress={handleScanAnother}
+              activeOpacity={0.85}
+              style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: 20,
+                paddingVertical: 18,
+                alignItems: 'center',
+                borderWidth: 2,
+                borderColor: '#22C55E',
+                shadowColor: '#22C55E',
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.15,
+                shadowRadius: 8,
+                elevation: 4,
+              }}
+            >
+              <Text style={{
+                color: '#16A34A',
+                fontSize: 17,
+                fontWeight: 'bold',
+                letterSpacing: 0.5,
+              }}>
+                {t('diseaseResult.scanAnother')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
       </ScrollView>
     </View>
   );
