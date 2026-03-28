@@ -34,6 +34,7 @@ type CropPredictionScreenNavigationProp = NativeStackNavigationProp<
 
 interface FormData {
   cropType: string;
+  previousCrop: string; // NEW: what was grown before
   acres: string;
   sellingPricePerKgInr: string;
   plantingDate: string;
@@ -63,6 +64,7 @@ export const CropPredictionScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     cropType: '',
+    previousCrop: 'none', // Default to 'none'
     acres: '',
     sellingPricePerKgInr: '',
     plantingDate: '',
@@ -81,9 +83,11 @@ export const CropPredictionScreen = () => {
 
   // State for showing custom input fields
   const [showCustomCropType, setShowCustomCropType] = useState(false);
+  const [showCustomPreviousCrop, setShowCustomPreviousCrop] = useState(false);
   const [showCustomSoilType, setShowCustomSoilType] = useState(false);
   const [showCustomFarmingMethod, setShowCustomFarmingMethod] = useState(false);
   const [customCropType, setCustomCropType] = useState('');
+  const [customPreviousCrop, setCustomPreviousCrop] = useState('');
   const [customSoilType, setCustomSoilType] = useState('');
   const [customFarmingMethod, setCustomFarmingMethod] = useState('');
 
@@ -111,6 +115,19 @@ export const CropPredictionScreen = () => {
 
   // Get translated dropdown options
   const getCropTypes = () => [
+    { label: t('prediction.cropTypes.rice'), value: 'rice' },
+    { label: t('prediction.cropTypes.wheat'), value: 'wheat' },
+    { label: t('prediction.cropTypes.cotton'), value: 'cotton' },
+    { label: t('prediction.cropTypes.sugarcane'), value: 'sugarcane' },
+    { label: t('prediction.cropTypes.corn'), value: 'corn' },
+    { label: t('prediction.cropTypes.potato'), value: 'potato' },
+    { label: t('prediction.cropTypes.tomato'), value: 'tomato' },
+    { label: t('prediction.cropTypes.onion'), value: 'onion' },
+    { label: otherLabel, value: 'other' },
+  ];
+
+  const getPreviousCrops = () => [
+    { label: t('prediction.previousCropTypes.none'), value: 'none' },
     { label: t('prediction.cropTypes.rice'), value: 'rice' },
     { label: t('prediction.cropTypes.wheat'), value: 'wheat' },
     { label: t('prediction.cropTypes.cotton'), value: 'cotton' },
@@ -219,6 +236,8 @@ export const CropPredictionScreen = () => {
     switch (name) {
       case 'cropType':
         return !value ? t('prediction.errors.required') : '';
+      case 'previousCrop':
+        return ''; // Optional field
       case 'acres':
         return !value
           ? t('prediction.errors.required')
@@ -357,6 +376,7 @@ export const CropPredictionScreen = () => {
       const predictionResult = await getCropPrediction({
         input: {
           cropType: formData.cropType,
+          previousCrop: formData.previousCrop || 'none',
           acres: delocalizedAcres,
           sellingPricePerKgInr: delocalizedSellingPricePerKgInr,
           plantingDate: delocalizeNumber(formData.plantingDate, i18n.language),
@@ -543,6 +563,35 @@ export const CropPredictionScreen = () => {
                       handleFieldChange('cropType', value);
                     }}
                     error={errors.cropType}
+                  />
+                )}
+
+                <Dropdown
+                  label={t('prediction.previousCrop') || 'Previous Crop (if any)'}
+                  placeholder={t('prediction.previousCropPlaceholder') || 'Select previous crop'}
+                  value={showCustomPreviousCrop ? otherLabel : (formData.previousCrop ? getPreviousCrops().find(c => c.value === formData.previousCrop)?.label || '' : '')}
+                  options={getPreviousCrops()}
+                  onSelect={(value) => {
+                    const val = typeof value === 'string' ? value : (value as any)?.value || value;
+                    if (val === 'other') {
+                      setShowCustomPreviousCrop(true);
+                    } else {
+                      setShowCustomPreviousCrop(false);
+                      setCustomPreviousCrop('');
+                      handleFieldChange('previousCrop', val);
+                    }
+                  }}
+                />
+
+                {showCustomPreviousCrop && (
+                  <CustomInput
+                    label={t('prediction.customPreviousCropLabel') || 'Specify Previous Crop'}
+                    placeholder={t('prediction.customPreviousCropPlaceholder') || 'Enter previous crop'}
+                    value={customPreviousCrop}
+                    onChangeText={(value) => {
+                      setCustomPreviousCrop(value);
+                      handleFieldChange('previousCrop', value);
+                    }}
                   />
                 )}
 

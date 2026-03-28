@@ -1013,6 +1013,8 @@ export interface CropPredictionInput {
   farmingMethod: string;
   additionalInfo: string;
   location: string;
+  // Optional: what crop was grown before in this land
+  previousCrop?: string;
 }
 
 export interface CropPredictionResult {
@@ -1035,8 +1037,21 @@ export interface CropPredictionResult {
     soilHealth: string;
     climateCondition: string;
     additionalRisks: string;
+    soilConditionFromPreviousCrop?: string;
   };
   recommendation: string;
+  extraCropSuggestions?: {
+    crops: Array<{
+      cropName: string;
+      reason: string;
+      estimatedYieldKg: number;
+      estimatedMarketPricePerKgInr: number;
+      estimatedRevenueInr: number;
+      profitComparisonInr: number; // How much more profit compared to current crop
+      suitabilityPercent: number; // 0-100
+    }>;
+    soilAnalysis: string; // Analysis of soil condition based on previous crop
+  };
 }
 
 // ============ CROP DISEASE DETECTION VIA GEMINI ============
@@ -1219,7 +1234,7 @@ export const getCropPrediction = async (params: {
         ? input.growingPeriodDays
         : null;
 
-    return `You are an expert agricultural AI assistant specializing in crop yield, crop health, and financial outlook for Indian farmers.
+    return `You are an expert agricultural AI assistant specializing in crop yield, crop health, financial outlook, and crop rotation for Indian farmers.
 
 FARMER'S CROP INFORMATION:
 - Crop Type: ${input.cropType}
@@ -1232,6 +1247,7 @@ ${derivedDays !== null ? `- Crop Duration (derived): ${derivedDays} days` : ''}
 - Farming Method: ${input.farmingMethod}
 - Location: ${input.location}
 ${input.additionalInfo ? `- Additional Information: ${input.additionalInfo}` : ''}
+${input.previousCrop ? `- Previous Crop (grown before): ${input.previousCrop}` : ''}
 
 IMPORTANT INSTRUCTIONS:
 1. Respond ONLY in ${languageName}
@@ -1243,16 +1259,27 @@ IMPORTANT INSTRUCTIONS:
 7. Use the Planting Date and Expected Harvest Date to infer the season (e.g., Kharif/Rabi/Zaid) and typical weather risks for that region.
   - Do NOT claim you have live weather/forecast access.
   - Use typical seasonal patterns for India and mention actionable weather risk mitigation.
-7. Units:
+8. If previousCrop is provided, analyze the soil condition:
+  - Consider nutrient depletion/enrichment from the previous crop
+  - Recommend soil care measures if needed (crop residue management, composting, soil testing)
+  - Include this analysis in riskAnalysis.soilConditionFromPreviousCrop
+9. Based on the soil type, location, weather, and previous crop history:
+  - Suggest 3-5 alternative crops that could grow well on this land
+  - For each suggested crop, provide estimated yield, market price, revenue, and profit comparison
+  - Include suitability percentage (how well the land suits each crop)
+  - Calculate profitComparisonInr: how much more profit they'd make compared to the current crop
+10. Units:
    - predictedYieldKg: total yield for the given farm size in kilograms
    - yieldTons: total yield for the given farm size in metric tons
    - projectedRevenueInr: total projected revenue in INR
    - marketPricePerKgInr: market price per kg in INR
    - confidencePercent: 0-100
    - climateScore: 0-100
-8. Internal consistency rules (must hold):
+11. Internal consistency rules (must hold):
    - projectedRevenueInr must be approximately predictedYieldKg * marketPricePerKgInr (within 5% rounding)
    - yieldTons must be approximately predictedYieldKg / 1000
+   - extraCropSuggestions.crops[].estimatedRevenueInr = estimatedYieldKg * estimatedMarketPricePerKgInr
+   - extraCropSuggestions.crops[].profitComparisonInr = estimatedRevenueInr - projectedRevenueInr
 
 Analyze the above crop information and provide results in this EXACT JSON format:
 {
@@ -1274,15 +1301,42 @@ Analyze the above crop information and provide results in this EXACT JSON format
   "riskAnalysis": {
     "soilHealth": "",
     "climateCondition": "",
-    "additionalRisks": ""
+    "additionalRisks": "",
+    "soilConditionFromPreviousCrop": ""
   },
-  "recommendation": ""
+  "recommendation": "",
+  "extraCropSuggestions": {
+    "crops": [
+      {
+        "cropName": "",
+        "reason": "",
+        "estimatedYieldKg": 0,
+        "estimatedMarketPricePerKgInr": 0,
+        "estimatedRevenueInr": 0,
+        "profitComparisonInr": 0,
+        "suitabilityPercent": 0
+      }
+    ],
+    "soilAnalysis": ""
+  }
 }
 
 For "recommendation":
 - Write 4-6 VERY specific, practical actions tailored to the farmer's inputs
 - Mention irrigation schedule, fertilizer plan, and a risk-mitigation step
+- If previousCrop was provided, mention soil care recommendations
 - Keep it in ${languageName} and as one readable paragraph (no JSON arrays)
+
+For "extraCropSuggestions.crops":
+- Suggest 3-5 crops that would grow well on this land based on soil type, location, weather, and previous crop
+- For "reason": briefly explain why this crop is suitable (e.g., "Good soil recovery after rice, well-suited to monsoon patterns")
+- Calculate profit comparison realistically (negative if less profitable, positive if more profitable)
+- List in order of profitability (highest profit first)
+
+For "extraCropSuggestions.soilAnalysis":
+- Provide a brief analysis of soil condition
+- If previousCrop was given, mention how it affected soil health and what care is needed
+- Mention if soil needs enrichment, testing, or remediation before planting next crop
 
 Keep all other text fields concise and actionable.`;
   };
@@ -1350,8 +1404,23 @@ Keep all other text fields concise and actionable.`;
     const soilHealth = String(parsed?.riskAnalysis?.soilHealth ?? '').trim();
     const climateCondition = String(parsed?.riskAnalysis?.climateCondition ?? '').trim();
     const additionalRisks = String(parsed?.riskAnalysis?.additionalRisks ?? '').trim();
+    const soilConditionFromPreviousCrop = String(parsed?.riskAnalysis?.soilConditionFromPreviousCrop ?? '').trim();
 
     const recommendation = String(parsed?.recommendation ?? '').trim();
+
+    // Parse extra crop suggestions
+    const extraCropSuggestions = parsed?.extraCropSuggestions;
+    const suggestedCrops = Array.isArray(extraCropSuggestions?.crops) ? extraCropSuggestions.crops.map((c: any) => ({
+      cropName: String(c?.cropName ?? '').trim(),
+      reason: String(c?.reason ?? '').trim(),
+      estimatedYieldKg: toFiniteNumber(c?.estimatedYieldKg),
+      estimatedMarketPricePerKgInr: toFiniteNumber(c?.estimatedMarketPricePerKgInr),
+      estimatedRevenueInr: toFiniteNumber(c?.estimatedRevenueInr),
+      profitComparisonInr: toFiniteNumber(c?.profitComparisonInr),
+      suitabilityPercent: toFiniteNumber(c?.suitabilityPercent),
+    })) : [];
+
+    const soilAnalysis = String(extraCropSuggestions?.soilAnalysis ?? '').trim();
 
     const issues: string[] = [];
     if (!isFinitePositive(predictedYieldKg)) issues.push('predictedYieldKg');
@@ -1365,6 +1434,7 @@ Keep all other text fields concise and actionable.`;
     if (!climateCondition) issues.push('climateCondition');
     if (!additionalRisks) issues.push('additionalRisks');
     if (!recommendation) issues.push('recommendation');
+    // extraCropSuggestions and soilConditionFromPreviousCrop are optional, so no issues push needed
 
     // Consistency checks: revenue ~= yieldKg * priceKg, yieldTons ~= yieldKg / 1000
     if (isFinitePositive(predictedYieldKg) && isFinitePositive(marketPricePerKgInr) && isFinitePositive(projectedRevenueInr)) {
@@ -1420,8 +1490,13 @@ Keep all other text fields concise and actionable.`;
           soilHealth: soilHealth || 'Not available',
           climateCondition: climateCondition || 'Not available',
           additionalRisks: additionalRisks || 'Not available',
+          soilConditionFromPreviousCrop: soilConditionFromPreviousCrop || undefined,
         },
         recommendation: recommendation || 'Use local market rates and follow best practices for better outcomes.',
+        extraCropSuggestions: suggestedCrops.length > 0 ? {
+          crops: suggestedCrops,
+          soilAnalysis: soilAnalysis || 'Soil conditions suitable for crop rotation.',
+        } : undefined,
       },
       issues,
       raw,

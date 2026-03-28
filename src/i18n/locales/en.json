@@ -747,6 +747,13 @@
     "additionalDetails": "Additional Information",
     "cropType": "Crop Type",
     "cropTypePlaceholder": "Select crop type",
+    "previousCrop": "Previous Crop (if any)",
+    "previousCropPlaceholder": "Select previous crop",
+    "customPreviousCropLabel": "Specify Previous Crop",
+    "customPreviousCropPlaceholder": "Enter previous crop",
+    "previousCropTypes": {
+      "none": "No previous crop"
+    },
     "acres": "Land Area (Acres)",
     "acresPlaceholder": "Enter area",
     "sellingPricePerKg": "Selling Price (₹/kg)",

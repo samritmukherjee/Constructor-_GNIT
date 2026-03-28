@@ -766,6 +766,13 @@
     "additionalDetails": "অতিরিক্ত তথ্য",
     "cropType": "ফসলের ধরন",
     "cropTypePlaceholder": "ফসলের ধরন নির্বাচন করুন",
+    "previousCrop": "পূর্ববর্তী ফসল (যদি থাকে)",
+    "previousCropPlaceholder": "পূর্ববর্তী ফসল নির্বাচন করুন",
+    "customPreviousCropLabel": "পূর্ববর্তী ফসল নির্দিষ্ট করুন",
+    "customPreviousCropPlaceholder": "পূর্ববর্তী ফসল লিখুন",
+    "previousCropTypes": {
+      "none": "কোনো পূর্ববর্তী ফসল নেই"
+    },
     "acres": "জমির এলাকা (একর)",
     "acresPlaceholder": "এলাকা লিখুন",
     "sellingPricePerKg": "বিক্রয় মূল্য (₹/কেজি)",

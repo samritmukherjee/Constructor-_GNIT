@@ -747,6 +747,13 @@
     "additionalDetails": "अतिरिक्त जानकारी",
     "cropType": "फसल का प्रकार",
     "cropTypePlaceholder": "फसल का प्रकार चुनें",
+    "previousCrop": "पिछली फसल (यदि कोई हो)",
+    "previousCropPlaceholder": "पिछली फसल चुनें",
+    "customPreviousCropLabel": "पिछली फसल निर्दिष्ट करें",
+    "customPreviousCropPlaceholder": "पिछली फसल दर्ज करें",
+    "previousCropTypes": {
+      "none": "कोई पिछली फसल नहीं"
+    },
     "acres": "भूमि क्षेत्र (एकड़)",
     "acresPlaceholder": "क्षेत्र दर्ज करें",
     "sellingPricePerKg": "बिक्री मूल्य (₹/किलो)",
