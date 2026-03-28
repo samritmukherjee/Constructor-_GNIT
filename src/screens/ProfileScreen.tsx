@@ -13,13 +13,15 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
-import { User, Mail, Phone, MapPin, Globe, Sprout, Bell, ArrowLeft, ShoppingBag } from 'lucide-react-native';
+import { User, Mail, Phone, MapPin, Globe, Sprout, Bell, ShoppingBag, LogOut } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 import { CustomInput } from '../components/CustomInput';
+import { CustomAlert } from '../components/CustomAlert';
 import { Dropdown } from '../components/Dropdown';
 import { INDIAN_STATES, FARMER_TYPES, LANGUAGES, INDIAN_DISTRICTS } from '../constants/data';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -62,6 +64,7 @@ export const ProfileScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [showLogoutAlert, setShowLogoutAlert] = useState(false);
 
   const [initialData, setInitialData] = useState<ProfileData>({
     fullName: '',
@@ -259,24 +262,22 @@ export const ProfileScreen = () => {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      tr('profile.logout.confirmTitle', 'Confirm Logout'),
-      tr('profile.logout.confirmMessage', 'Are you sure you want to logout?'),
-      [
-        { text: tr('profile.logout.cancel', 'Cancel'), style: 'cancel' },
-        {
-          text: tr('profile.logout.confirm', 'Logout'),
-          style: 'destructive',
-          onPress: async () => {
-            const result = await logout();
-            if (!result.success) {
-              Alert.alert(tr('profile.error.title', 'Error'), result.message);
-              return;
-            }
-            navigation.navigate('SignIn', {});
-          },
-        },
-      ]
+    setShowLogoutAlert(true);
+  };
+
+  const confirmLogout = async () => {
+    setShowLogoutAlert(false);
+    const result = await logout();
+    if (!result.success) {
+      Alert.alert(tr('profile.error.title', 'Error'), result.message);
+      return;
+    }
+    // Reset navigation stack so back button can't return to previous screens
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: 'SignIn' }],
+      })
     );
   };
 
@@ -340,42 +341,9 @@ export const ProfileScreen = () => {
           }}
         >
           {/* Back Button */}
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-            style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-              paddingHorizontal: 18,
-              paddingVertical: 10,
-              borderRadius: 24,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 8,
-              shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.12,
-            shadowRadius: 5,
-            elevation: 3,
-            alignSelf: 'flex-start',
-            marginBottom: 20,
-          }}
-        >
-          <ArrowLeft size={20} color={profileData.userType === 'buyer' ? '#3B82F6' : '#16A34A'} strokeWidth={2.5} />
-          <Text 
-            style={{ 
-              color: profileData.userType === 'buyer' ? '#3B82F6' : '#16A34A',
-              fontWeight: '600',
-              fontSize: 15, 
-              lineHeight: 20, 
-              letterSpacing: 0.3,
-              flexShrink: 0,
-              minWidth: 70,
-            }}
-            numberOfLines={1}
-          >
-            {tr('profile.back', 'Back')}
-          </Text>
-        </TouchableOpacity>
+          <View style={{ marginBottom: 20 }}>
+            <BackButton />
+          </View>
 
         <Text style={{ fontSize: 28, fontWeight: '700', color: '#FFFFFF' }}>
           {tr('profile.title', 'My Profile')}
@@ -839,6 +807,28 @@ export const ProfileScreen = () => {
         )}
       </View>
       </ScrollView>
+
+      {/* Logout Confirmation Alert */}
+      <CustomAlert
+        visible={showLogoutAlert}
+        type="warning"
+        icon={LogOut}
+        title={tr('profile.logout.confirmTitle', 'Confirm Logout')}
+        message={tr('profile.logout.confirmMessage', 'Are you sure you want to logout?')}
+        buttons={[
+          {
+            text: tr('profile.logout.cancel', 'Cancel'),
+            style: 'cancel',
+            onPress: () => setShowLogoutAlert(false),
+          },
+          {
+            text: tr('profile.logout.confirm', 'Logout'),
+            style: 'destructive',
+            onPress: confirmLogout,
+          },
+        ]}
+        onClose={() => setShowLogoutAlert(false)}
+      />
     </View>
   );
 };

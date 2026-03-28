@@ -24,6 +24,89 @@ export interface WeatherData {
   };
 }
 
+export type WeatherIllustrationKey =
+  | 'cloudy-day-1'
+  | 'cloudy-day-2'
+  | 'cloudy-day-3'
+  | 'cloudy-night-1'
+  | 'cloudy-night-2'
+  | 'cloudy-night-3'
+  | 'cloudy'
+  | 'day'
+  | 'night'
+  | 'rainy-1'
+  | 'rainy-2'
+  | 'rainy-3'
+  | 'rainy-4'
+  | 'rainy-5'
+  | 'rainy-6'
+  | 'rainy-7'
+  | 'snowy-1'
+  | 'snowy-2'
+  | 'snowy-3'
+  | 'snowy-4'
+  | 'snowy-5'
+  | 'snowy-6'
+  | 'thunder';
+
+/**
+ * Map Open-Meteo WMO weather codes (+ day/night) to your SVG illustration set.
+ *
+ * Notes:
+ * - We intentionally keep this deterministic (no randomness) so users don't see flicker.
+ * - Some WMO codes don't have an exact asset match (e.g., fog). We map to the closest cloudy variant.
+ */
+export const getWeatherIllustrationKey = (
+  weatherCode: number,
+  options?: { isNight?: boolean }
+): WeatherIllustrationKey => {
+  const isNight = options?.isNight === true;
+
+  // Clear sky
+  if (weatherCode === 0) return isNight ? 'night' : 'day';
+
+  // Mainly clear / partly cloudy
+  if (weatherCode === 1) return isNight ? 'cloudy-night-1' : 'cloudy-day-1';
+  if (weatherCode === 2) return isNight ? 'cloudy-night-2' : 'cloudy-day-2';
+
+  // Overcast
+  if (weatherCode === 3) return 'cloudy';
+
+  // Fog
+  if (weatherCode === 45 || weatherCode === 48) return isNight ? 'cloudy-night-3' : 'cloudy-day-3';
+
+  // Drizzle (light -> heavier)
+  if (weatherCode >= 51 && weatherCode <= 53) return 'rainy-5';
+  if (weatherCode >= 54 && weatherCode <= 57) return 'rainy-6';
+
+  // Rain (light -> heavy)
+  if (weatherCode === 61) return 'rainy-4';
+  if (weatherCode === 63) return 'rainy-6';
+  if (weatherCode === 65) return 'rainy-7';
+
+  // Freezing rain / heavy freezing rain
+  if (weatherCode === 66 || weatherCode === 67) return 'rainy-7';
+
+  // Snow (slight -> heavy)
+  if (weatherCode === 71) return isNight ? 'snowy-4' : 'snowy-2';
+  if (weatherCode === 73) return isNight ? 'snowy-5' : 'snowy-1';
+  if (weatherCode === 75 || weatherCode === 77) return isNight ? 'snowy-6' : 'snowy-3';
+
+  // Rain showers (slight -> violent)
+  if (weatherCode === 80) return 'rainy-4';
+  if (weatherCode === 81) return 'rainy-6';
+  if (weatherCode === 82) return 'rainy-7';
+
+  // Snow showers
+  if (weatherCode === 85) return 'snowy-5';
+  if (weatherCode === 86) return 'snowy-6';
+
+  // Thunderstorm
+  if (weatherCode >= 95 && weatherCode <= 99) return 'thunder';
+
+  return isNight ? 'night' : 'day';
+};
+
 /**
  * Get weather icon name based on WMO weather codes
  * Reference: https://open-meteo.com/en/docs

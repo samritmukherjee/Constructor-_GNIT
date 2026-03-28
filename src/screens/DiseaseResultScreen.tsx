@@ -9,12 +9,14 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, Bug, AlertTriangle, Heart, TrendingUp, Pill, Shield, Sparkles, CheckCircle } from 'lucide-react-native';
+import { Bug, AlertTriangle, Heart, TrendingUp, Pill, Shield, Sparkles, CheckCircle } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { localizeNumber } from '../utils/numberLocalization';
 
 type DiseaseResultScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -27,7 +29,7 @@ type DiseaseResultScreenRouteProp = RouteProp<
 >;
 
 export const DiseaseResultScreen = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigation = useNavigation<DiseaseResultScreenNavigationProp>();
   const route = useRoute<DiseaseResultScreenRouteProp>();
   const insets = useSafeAreaInsets();
@@ -182,42 +184,9 @@ export const DiseaseResultScreen = () => {
           }}
         >
           <Animated.View style={{ opacity: fadeAnim }}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              activeOpacity={0.7}
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                paddingHorizontal: 18,
-                paddingVertical: 10,
-                borderRadius: 24,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.12,
-                shadowRadius: 5,
-                elevation: 3,
-                alignSelf: 'flex-start',
-                marginBottom: 20,
-              }}
-            >
-              <ArrowLeft size={20} color="#16A34A" strokeWidth={2.5} />
-              <Text style={{ 
-                color: '#16A34A',
-                fontWeight: '600',
-                fontSize: 15,
-              }}>
-                {(() => {
-                  try {
-                    const translated = t('common.back');
-                    return translated === 'common.back' ? 'Back' : translated;
-                  } catch {
-                    return 'Back';
-                  }
-                })()}
-              </Text>
-            </TouchableOpacity>
+            <View style={{ marginBottom: 20 }}>
+              <BackButton />
+            </View>
 
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
               <View style={{
@@ -276,72 +245,6 @@ export const DiseaseResultScreen = () => {
               </View>
             </Animated.View>
           )}
-
-          {/* Analysis Details Card */}
-          <Animated.View style={{ 
-            transform: [{ scale: cardScale }],
-          }}>
-            <View style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: 20,
-              padding: 20,
-              marginBottom: 20,
-              borderWidth: 2,
-              borderColor: '#DBEAFE',
-              shadowColor: '#3B82F6',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.1,
-              shadowRadius: 12,
-              elevation: 6,
-            }}>
-              <View style={{ 
-                flexDirection: 'row', 
-                alignItems: 'center', 
-                marginBottom: 16 
-              }}>
-                <View style={{
-                  backgroundColor: '#DBEAFE',
-                  borderRadius: 16,
-                  padding: 12,
-                  marginRight: 12,
-                }}>
-                  <CheckCircle size={24} color="#3B82F6" strokeWidth={2.5} />
-                </View>
-                <Text style={{
-                  fontSize: 18,
-                  fontWeight: 'bold',
-                  color: '#1E40AF',
-                }}>
-                  {t('diseaseResult.analysisDetails')}
-                </Text>
-              </View>
-              <View style={{ gap: 10 }}>
-                <Text style={{
-                  fontSize: 15,
-                  color: '#1E3A8A',
-                  lineHeight: 22,
-                }}>
-                  • {t('disease.cropType')}: <Text style={{ fontWeight: '700' }}>{cropType || t('common.unknown')}</Text>
-                </Text>
-                {cropAge && (
-                  <Text style={{
-                    fontSize: 15,
-                    color: '#1E3A8A',
-                    lineHeight: 22,
-                  }}>
-                    • {t('disease.cropAge')}: <Text style={{ fontWeight: '700' }}>{cropAge} {t('disease.days')}</Text>
-                  </Text>
-                )}
-                <Text style={{
-                  fontSize: 15,
-                  color: '#1E3A8A',
-                  lineHeight: 22,
-                }}>
-                  • {t('disease.recentWeather')}: <Text style={{ fontWeight: '700' }}>{t(`disease.weatherConditions.${weather}`)}</Text>
-                </Text>
-              </View>
-            </View>
-          </Animated.View>
 
           {/* Warning Message - Show if not a crop */}
           {diseaseData.isNotCrop && (
@@ -612,7 +515,7 @@ export const DiseaseResultScreen = () => {
                       fontSize: 28,
                       fontWeight: 'bold',
                     }}>
-                      {diseaseData.healthPercentage}%
+                      {localizeNumber(diseaseData.healthPercentage, i18n.language)}%
                     </Text>
                   </View>
                 </View>

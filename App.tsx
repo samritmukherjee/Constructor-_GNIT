@@ -2,10 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as Notifications from 'expo-notifications';
 import './global.css';
 import './src/i18n/i18n';
 import { loadLanguage } from './src/i18n/i18n';
 import { AppNavigator } from './src/navigation/AppNavigator';
+import { configureNotificationsAsync } from './src/services/notifications';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
@@ -14,6 +24,7 @@ export default function App() {
     // Load saved language preference and initialize app
     const initializeApp = async () => {
       await loadLanguage();
+      await configureNotificationsAsync();
       // Give additional time for i18n to fully initialize
       setTimeout(() => {
         setIsReady(true);

@@ -8,25 +8,30 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  Image,
   Alert,
-  Linking,
   Keyboard,
+  Linking,
 } from 'react-native';
 import {
-  ArrowLeft,
-  Send,
-  Phone,
   MapPin,
-  Image as ImageIcon,
-  CheckCheck,
-  Check,
-  Video,
+  Send,
 } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 import { useTranslation } from 'react-i18next';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { auth } from '../config/firebase';
+import {
+  ChatMessage,
+  getOrCreateChatThread,
+  markChatThreadRead,
+  sendChatMessage,
+  sendChatLocationMessage,
+  subscribeToChatMessages,
+  sendChatNotificationToFarmer,
+} from '../services/chat';
+import { detectCurrentLocation } from '../services/location';
 
 type ChatScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -35,19 +40,14 @@ type ChatScreenNavigationProp = NativeStackNavigationProp<
 
 type ChatScreenRouteProp = RouteProp<RootStackParamList, 'Chat'>;
 
-interface Message {
+type UiMessage = {
   id: string;
   text: string;
-  sender: 'me' | 'other';
-  timestamp: Date;
-  status: 'sent' | 'delivered' | 'read';
   type: 'text' | 'location';
-  location?: {
-    latitude: number;
-    longitude: number;
-    address: string;
-  };
-}
+  location?: { lat: number; lng: number };
+  senderId: string;
+  createdAt: Date;
+};
 
 export const ChatScreen = () => {
   const { t, i18n } = useTranslation();
@@ -55,60 +55,27 @@ export const ChatScreen = () => {
   const route = useRoute<ChatScreenRouteProp>();
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const { contactName, contactPhone, userType } = route.params || {
+  const {
+    contactName,
+    contactPhone,
+    userType,
+    dealId,
+    buyerId,
+    buyerName,
+    farmerId,
+    farmerName,
+  } = route.params || {
     contactName: 'Contact',
-    contactPhone: '+91 9876543210',
+    contactPhone: '',
     userType: 'buyer',
   };
 
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: 'Hello! I am interested in your tomatoes. What is the current price?',
-      sender: 'other',
-      timestamp: new Date(Date.now() - 3600000),
-      status: 'read',
-      type: 'text',
-    },
-    {
-      id: '2',
-      text: 'Hello! The price is ₹40 per kg. I have 500 kg available.',
-      sender: 'me',
-      timestamp: new Date(Date.now() - 3000000),
-      status: 'read',
-      type: 'text',
-    },
-    {
-      id: '3',
-      text: 'Great! Can you share your location? I would like to visit.',
-      sender: 'other',
-      timestamp: new Date(Date.now() - 2400000),
-      status: 'read',
-      type: 'text',
-    },
-    {
-      id: '4',
-      text: 'Sure! Here is my location:',
-      sender: 'me',
-      timestamp: new Date(Date.now() - 1800000),
-      status: 'read',
-      type: 'text',
-    },
-    {
-      id: '5',
-      text: '',
-      sender: 'me',
-      timestamp: new Date(Date.now() - 1799000),
-      status: 'read',
-      type: 'location',
-      location: {
-        latitude: 22.5726,
-        longitude: 88.3639,
-        address: 'Kolkata, West Bengal',
-      },
-    },
-  ]);
+  const [threadId, setThreadId] = useState<string | null>(null);
+  const [loadingThread, setLoadingThread] = useState(false);
+  const [messages, setMessages] = useState<UiMessage[]>([]);
+  const [sendingLocation, setSendingLocation] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
 
   const tr = (key: string, fallback: string) => {
     try {
@@ -118,9 +85,115 @@ export const ChatScreen = () => {
     }
   };
 
+  // Wait for auth to initialize
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged((user) => {
+      // console.log('ChatScreen - Auth state changed:', user ? `User ${user.uid}` : 'No user');
+      setAuthReady(true);
+      if (!user) {
+        console.warn('ChatScreen: No authenticated user');
+      }
+    });
+    return unsub;
+  }, []);
+
   useEffect(() => {
     scrollViewRef.current?.scrollToEnd({ animated: true });
   }, [messages]);
+
+  // Initialize chat thread
+  useEffect(() => {
+    if (!authReady) return; // Wait for auth to initialize
+
+    const user = auth.currentUser;
+    if (!user) {
+      console.error('ChatScreen: Cannot initialize chat - no authenticated user');
+      Alert.alert(
+        tr('chat.error', 'Error'),
+        tr('chat.notSignedIn', 'Please sign in to use chat. Try logging out and back in.')
+      );
+      return;
+    }
+
+    // console.log('Initializing chat for user:', user.uid);
+
+    if (!buyerId || !farmerId) {
+      // Backwards-compat navigation (no IDs). Keep screen functional but without DB chat.
+      setThreadId(null);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingThread(true);
+    getOrCreateChatThread({
+      buyerId,
+      farmerId,
+      buyerName,
+      farmerName,
+      dealId,
+    })
+      .then((res) => {
+        if (cancelled) return;
+        if (!res.success) {
+          Alert.alert(tr('chat.error', 'Error'), res.message);
+          setThreadId(null);
+          return;
+        }
+        setThreadId(res.thread.id);
+        
+        // If buyer initiated chat with farmer, send notification to farmer
+        if (userType === 'buyer' && user.uid === buyerId && farmerId) {
+          sendChatNotificationToFarmer({
+            farmerId: farmerId,
+            buyerId: user.uid,
+            buyerName: buyerName || 'A Buyer',
+            threadId: res.thread.id,
+          }).catch((e) => {
+            console.warn('Failed to send chat notification:', e);
+            // Don't alert user - notification failure is not critical
+          });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingThread(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [buyerId, farmerId, buyerName, farmerName, dealId, authReady, userType]);
+
+  useEffect(() => {
+    if (!threadId) return;
+    const unsub = subscribeToChatMessages(threadId, (msgs: ChatMessage[]) => {
+      const mapped: UiMessage[] = msgs.map((m) => ({
+        id: m.id,
+        text: m.text,
+        type: (m as any).type === 'location' ? 'location' : 'text',
+        location: (m as any).location,
+        senderId: m.senderId,
+        createdAt: (m.createdAt?.toDate?.() ?? new Date()) as Date,
+      }));
+      setMessages(mapped);
+    });
+    return unsub;
+  }, [threadId]);
+
+  useEffect(() => {
+    if (!threadId) return;
+    // Mark as read when chat opens.
+    markChatThreadRead(threadId);
+  }, [threadId]);
+
+  useEffect(() => {
+    const myId = auth.currentUser?.uid;
+    if (!threadId || !myId || messages.length === 0) return;
+    const last = messages[messages.length - 1];
+    if (last?.senderId && last.senderId !== myId) {
+      // New incoming message while screen is open => clear unread.
+      markChatThreadRead(threadId);
+    }
+  }, [messages.length, threadId]);
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -137,114 +210,73 @@ export const ChatScreen = () => {
     };
   }, []);
 
-  const handleSendMessage = () => {
-    if (message.trim().length === 0) return;
-
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      text: message.trim(),
-      sender: 'me',
-      timestamp: new Date(),
-      status: 'sent',
-      type: 'text',
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
-    setMessage('');
-
-    // Scroll to bottom after sending message
-    setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 100);
-
-    // Simulate message delivery
-    setTimeout(() => {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === newMessage.id ? { ...msg, status: 'delivered' } : msg
-        )
-      );
-    }, 1000);
-  };
-
-  const handleShareLocation = () => {
-    Alert.alert(
-      tr('chat.shareLocation', 'Share Location'),
-      tr('chat.shareLocationConfirm', 'Do you want to share your current location?'),
-      [
-        {
-          text: tr('chat.cancel', 'Cancel'),
-          style: 'cancel',
-        },
-        {
-          text: tr('chat.share', 'Share'),
-          onPress: () => {
-            const locationMessage: Message = {
-              id: Date.now().toString(),
-              text: '',
-              sender: 'me',
-              timestamp: new Date(),
-              status: 'sent',
-              type: 'location',
-              location: {
-                latitude: 22.5726,
-                longitude: 88.3639,
-                address: 'Your Current Location, Kolkata',
-              },
-            };
-            setMessages((prev) => [...prev, locationMessage]);
-          },
-        },
-      ]
-    );
-  };
-
-  const handlePhoneCall = () => {
-    const phoneNumber = contactPhone.replace(/\s+/g, '');
-    Linking.openURL(`tel:${phoneNumber}`).catch(() => {
+  const handleSendMessage = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      console.error('handleSendMessage: No authenticated user');
+      Alert.alert(tr('chat.error', 'Error'), tr('chat.notSignedIn', 'Please sign in again. Try logging out and back in.'));
+      return;
+    }
+    // console.log('Sending message as user:', user.uid);
+    if (!threadId) {
       Alert.alert(
         tr('chat.error', 'Error'),
-        tr('chat.phoneError', 'Unable to make phone call')
+        tr('chat.missingChatContext', 'Chat is not available for this contact yet.')
       );
+      return;
+    }
+
+    const text = message.trim();
+    if (!text) return;
+
+    setMessage('');
+    const res = await sendChatMessage({ threadId, text });
+    if (!res.success) {
+      Alert.alert(tr('chat.error', 'Error'), res.message);
+    }
+  };
+
+  const openInMaps = (lat: number, lng: number) => {
+    const url = `https://www.google.com/maps?q=${lat},${lng}`;
+    Linking.openURL(url).catch(() => {
+      Alert.alert(tr('chat.error', 'Error'), tr('chat.openMapsFailed', 'Unable to open maps.'));
     });
   };
 
-  const handleVideoCall = () => {
-    Alert.alert(
-      tr('chat.videoCall', 'Video Call'),
-      tr('chat.videoCallMsg', `Start a video call with ${contactName}?`),
-      [
-        {
-          text: tr('chat.cancel', 'Cancel'),
-          style: 'cancel',
-        },
-        {
-          text: tr('chat.call', 'Call'),
-          onPress: () => {
-            // Here you would integrate with video call service
-            Alert.alert(
-              tr('chat.comingSoon', 'Coming Soon'),
-              tr('chat.videoCallFeature', 'Video call feature will be available soon!')
-            );
-          },
-        },
-      ]
-    );
-  };
+  const handleShareLocation = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      console.error('handleShareLocation: No authenticated user');
+      Alert.alert(tr('chat.error', 'Error'), tr('chat.notSignedIn', 'Please sign in again. Try logging out and back in.'));
+      return;
+    }
+    // console.log('Sharing location as user:', user.uid);
+    if (!threadId) {
+      Alert.alert(
+        tr('chat.error', 'Error'),
+        tr('chat.missingChatContext', 'Chat is not available for this contact yet.')
+      );
+      return;
+    }
+    if (sendingLocation) return;
 
-  const handleOpenLocation = (latitude: number, longitude: number) => {
-    const url = Platform.select({
-      ios: `maps:0,0?q=${latitude},${longitude}`,
-      android: `geo:0,0?q=${latitude},${longitude}`,
-    });
-    
-    if (url) {
-      Linking.openURL(url).catch(() => {
-        Alert.alert(
-          tr('chat.error', 'Error'),
-          tr('chat.mapError', 'Unable to open maps')
-        );
-      });
+    setSendingLocation(true);
+    try {
+      const res = await detectCurrentLocation();
+      if (!res.ok) {
+        Alert.alert(tr('chat.error', 'Error'), tr('chat.locationPermission', 'Please allow location permission.'));
+        return;
+      }
+
+      const lat = res.location.coords.latitude;
+      const lng = res.location.coords.longitude;
+      const sendRes = await sendChatLocationMessage({ threadId, lat, lng });
+      if (!sendRes.success) {
+        Alert.alert(tr('chat.error', 'Error'), sendRes.message);
+        return;
+      }
+    } finally {
+      setSendingLocation(false);
     }
   };
 
@@ -255,16 +287,6 @@ export const ChatScreen = () => {
     const formattedHours = hours % 12 || 12;
     const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
     return `${formattedHours}:${formattedMinutes} ${ampm}`;
-  };
-
-  const renderMessageStatus = (status: Message['status']) => {
-    if (status === 'sent') {
-      return <Check size={12} color="#667781" strokeWidth={2.5} />;
-    } else if (status === 'delivered') {
-      return <CheckCheck size={12} color="#667781" strokeWidth={2.5} />;
-    } else {
-      return <CheckCheck size={12} color="#53BDEB" strokeWidth={2.5} />;
-    }
   };
 
   return (
@@ -281,14 +303,10 @@ export const ChatScreen = () => {
           }}
         >
           <View className="flex-row items-center flex-1">
+            <View className="mr-4">
+              <BackButton />
+            </View>
             <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              className="mr-4 p-1"
-              activeOpacity={0.6}
-            >
-              <ArrowLeft size={26} color="#fff" strokeWidth={2.5} />
-            </TouchableOpacity>
-            <TouchableOpacity 
               className="bg-white/35 rounded-full w-12 h-12 items-center justify-center mr-3"
               activeOpacity={0.7}
               style={{
@@ -314,18 +332,15 @@ export const ChatScreen = () => {
           </View>
           <View className="flex-row items-center">
             <TouchableOpacity
-              onPress={handleVideoCall}
-              className="w-11 h-11 items-center justify-center mr-2"
-              activeOpacity={0.6}
+              onPress={handleShareLocation}
+              activeOpacity={0.7}
+              disabled={sendingLocation || !threadId}
+              style={{
+                opacity: sendingLocation || !threadId ? 0.5 : 1,
+                padding: 8,
+              }}
             >
-              <Video size={23} color="#fff" strokeWidth={2} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handlePhoneCall}
-              className="w-11 h-11 items-center justify-center"
-              activeOpacity={0.6}
-            >
-              <Phone size={23} color="#fff" strokeWidth={2} />
+              <MapPin size={24} color="#fff" strokeWidth={2.5} />
             </TouchableOpacity>
           </View>
         </View>
@@ -345,163 +360,104 @@ export const ChatScreen = () => {
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="interactive"
             >
-          {messages.map((msg) => (
-            <View
-              key={msg.id}
-              className={`mb-2.5 ${
-                msg.sender === 'me' ? 'items-end' : 'items-start'
-              }`}
-            >
-              {msg.type === 'text' ? (
-                <View
-                  className={`max-w-[82%] rounded-lg px-3.5 py-2.5 ${
-                    msg.sender === 'me'
-                      ? 'bg-[#DCF8C6] rounded-tr-none'
-                      : 'bg-white rounded-tl-none'
-                  }`}
-                  style={{
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: msg.sender === 'other' ? 0.1 : 0.08,
-                    shadowRadius: 2,
-                    elevation: 2,
-                  }}
-                >
-                  <Text
-                    className={`text-[15.5px] leading-5 ${
-                      msg.sender === 'me' ? 'text-gray-900' : 'text-gray-900'
-                    }`}
-                  >
-                    {msg.text}
-                  </Text>
-                  <View className="flex-row items-center justify-end mt-1 -mb-0.5">
-                    <Text
-                      className={`text-[11px] ${
-                        msg.sender === 'me' ? 'text-gray-600' : 'text-gray-500'
+              {messages.map((msg) => {
+                const myId = auth.currentUser?.uid;
+                const isMe = !!myId && msg.senderId === myId;
+                return (
+                  <View
+                    key={msg.id}
+                    className={`mb-2.5 ${isMe ? 'items-end' : 'items-start'
                       }`}
+                  >
+                    <View
+                      className={`max-w-[82%] rounded-lg px-3.5 py-2.5 ${isMe ? 'bg-[#DCF8C6] rounded-tr-none' : 'bg-white rounded-tl-none'
+                        }`}
+                      style={{
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: isMe ? 0.08 : 0.1,
+                        shadowRadius: 2,
+                        elevation: 2,
+                      }}
                     >
-                      {formatTime(msg.timestamp)}
-                    </Text>
-                    {msg.sender === 'me' && (
-                      <View className="ml-1">
-                        {renderMessageStatus(msg.status)}
-                      </View>
-                    )}
-                  </View>
-                </View>
-              ) : (
-                // Location message
-                <TouchableOpacity
-                  onPress={() =>
-                    msg.location &&
-                    handleOpenLocation(
-                      msg.location.latitude,
-                      msg.location.longitude
-                    )
-                  }
-                  className={`w-[280px] rounded-xl overflow-hidden ${
-                    msg.sender === 'me' ? 'rounded-tr-none' : 'rounded-tl-none'
-                  }`}
-                  style={{
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.15,
-                    shadowRadius: 4,
-                    elevation: 4,
-                  }}
-                  activeOpacity={0.8}
-                >
-                  {/* Map placeholder */}
-                  <View className="bg-green-100 h-40 items-center justify-center">
-                    <MapPin size={56} color="#16A34A" strokeWidth={2} />
-                  </View>
-                  {/* Location info */}
-                  <View className="bg-white p-4">
-                    <View className="flex-row items-center mb-2">
-                      <MapPin size={18} color="#16A34A" strokeWidth={2.5} />
-                      <Text className="text-gray-900 font-bold text-[16px] ml-2">
-                        {tr('chat.location', 'Location')}
-                      </Text>
-                    </View>
-                    <Text className="text-gray-700 text-[14px] mb-3 leading-5">
-                      {msg.location?.address}
-                    </Text>
-                    <Text className="text-green-600 text-[13.5px] font-semibold">
-                      {tr('chat.tapToOpen', 'Tap to open in maps')}
-                    </Text>
-                    <View className="flex-row items-center justify-end mt-2.5">
-                      <Text className="text-[11px] text-gray-500">
-                        {formatTime(msg.timestamp)}
-                      </Text>
-                      {msg.sender === 'me' && (
-                        <View className="ml-1">
-                          {renderMessageStatus(msg.status)}
-                        </View>
+                      {msg.type === 'location' && msg.location ? (
+                        <>
+                          <Text className="text-[15.5px] leading-5 text-gray-900">
+                            {tr('chat.locationShared', 'Location shared')}
+                          </Text>
+                          <Text className="text-[13px] text-gray-700 mt-1">
+                            {msg.location.lat.toFixed(6)}, {msg.location.lng.toFixed(6)}
+                          </Text>
+                          <TouchableOpacity
+                            onPress={() => openInMaps(msg.location!.lat, msg.location!.lng)}
+                            activeOpacity={0.8}
+                            style={{ marginTop: 10, alignSelf: 'flex-start' }}
+                          >
+                            <View
+                              style={{
+                                backgroundColor: '#128C7E',
+                                paddingHorizontal: 12,
+                                paddingVertical: 8,
+                                borderRadius: 12,
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <MapPin size={16} color="#fff" strokeWidth={2.5} />
+                              <Text style={{ color: '#fff', fontWeight: '900', marginLeft: 8 }}>
+                                {tr('chat.openInMaps', 'Open in Maps')}
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                        </>
+                      ) : (
+                        <Text className="text-[15.5px] leading-5 text-gray-900">{msg.text}</Text>
                       )}
+                      <View className="flex-row items-center justify-end mt-1 -mb-0.5">
+                        <Text className={`text-[11px] ${isMe ? 'text-gray-600' : 'text-gray-500'}`}>
+                          {formatTime(msg.createdAt)}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                </TouchableOpacity>
-              )}
-            </View>
-          ))}
-        </ScrollView>
+                );
+              })}
+            </ScrollView>
 
             {/* Input Area */}
-            <View className="bg-[#F0F0F0] px-3 py-3 pb-4">
-              <View className="flex-row items-end">
-            {userType === 'farmer' && (
-              <TouchableOpacity
-                onPress={handleShareLocation}
-                className="bg-white rounded-full w-12 h-12 items-center justify-center mr-2"
-                activeOpacity={0.7}
-                style={{
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.12,
-                  shadowRadius: 2,
-                  elevation: 2,
-                }}
-              >
-                <MapPin size={24} color="#16A34A" strokeWidth={2} />
-              </TouchableOpacity>
-            )}
-            <View className="flex-1 bg-white rounded-[24px] px-5 py-3 flex-row items-center mr-2"
-              style={{
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.12,
-                shadowRadius: 2,
-                elevation: 2,
-              }}
-            >
-              <TextInput
-                className="flex-1 text-[16px] text-gray-900 max-h-24"
-                placeholder={tr('chat.typeMessage', 'Type a message...')}
-                placeholderTextColor="#9CA3AF"
-                value={message}
-                onChangeText={setMessage}
-                multiline
-                maxLength={500}
-              />
+            <View className="bg-[#F0F0F0] px-4 py-3">
+              <View className="flex-row items-center">
+                {/* Removed location button (requested) */}
+                <View
+                  className="flex-1 bg-white rounded-[22px] px-4 py-2 flex-row items-center mr-2"
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                  }}
+                >
+                  <TextInput
+                    className="flex-1 text-[16px] text-gray-900 max-h-24"
+                    placeholder={tr('chat.typeMessage', 'Type a message...')}
+                    placeholderTextColor="#9CA3AF"
+                    value={message}
+                    onChangeText={setMessage}
+                    multiline
+                    maxLength={500}
+                  />
+                </View>
+                <TouchableOpacity
+                  onPress={handleSendMessage}
+                  className="bg-[#128C7E] rounded-full w-11 h-11 items-center justify-center"
+                  activeOpacity={0.7}
+                  disabled={message.trim().length === 0}
+                  style={{
+                    opacity: message.trim().length === 0 ? 0.5 : 1,
+                  }}
+                >
+                  <Send size={20} color="#fff" strokeWidth={2.5} />
+                </TouchableOpacity>
+              </View>
             </View>
-            <TouchableOpacity
-              onPress={handleSendMessage}
-              className="bg-[#128C7E] rounded-full w-12 h-12 items-center justify-center"
-              activeOpacity={0.7}
-              disabled={message.trim().length === 0}
-              style={{
-                opacity: message.trim().length === 0 ? 0.5 : 1,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.2,
-                shadowRadius: 2,
-                elevation: 2,
-              }}
-            >
-              <Send size={20} color="#fff" strokeWidth={2.5} />
-            </TouchableOpacity>
-          </View>
-        </View>
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>

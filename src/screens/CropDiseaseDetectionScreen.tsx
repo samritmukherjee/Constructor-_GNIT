@@ -16,7 +16,8 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import { ArrowLeft, Scan, Camera, Image as ImageIcon, Sparkles, Upload, X } from 'lucide-react-native';
+import { Scan, Camera, Image as ImageIcon, Sparkles, Upload, X } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 import { CustomInput } from '../components/CustomInput';
 import { Dropdown } from '../components/Dropdown';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -289,42 +290,9 @@ export const CropDiseaseDetectionScreen = () => {
           }}
         >
           <Animated.View style={{ opacity: fadeAnim }}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              activeOpacity={0.7}
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                paddingHorizontal: 18,
-                paddingVertical: 10,
-                borderRadius: 24,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.12,
-                shadowRadius: 5,
-                elevation: 3,
-                alignSelf: 'flex-start',
-                marginBottom: 24,
-              }}
-            >
-              <ArrowLeft size={20} color="#16A34A" strokeWidth={2.5} />
-              <Text style={{ 
-                color: '#16A34A',
-                fontWeight: '600',
-                fontSize: 15,
-              }}>
-                {(() => {
-                  try {
-                    const translated = t('common.back');
-                    return translated === 'common.back' ? 'Back' : translated;
-                  } catch {
-                    return 'Back';
-                  }
-                })()}
-              </Text>
-            </TouchableOpacity>
+            <View style={{ marginBottom: 24 }}>
+              <BackButton />
+            </View>
 
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
               <View style={{
@@ -478,7 +446,7 @@ export const CropDiseaseDetectionScreen = () => {
                       marginTop: 4,
                       textAlign: 'center',
                     }}>
-                      Use Camera
+                      {t('disease.useCamera', 'Use Camera')}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -538,7 +506,7 @@ export const CropDiseaseDetectionScreen = () => {
                       marginTop: 4,
                       textAlign: 'center',
                     }}>
-                      From Gallery
+                      {t('disease.fromGallery')}
                     </Text>
                   </View>
                 </TouchableOpacity>

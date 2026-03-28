@@ -27,9 +27,10 @@ import {
   GoogleAuthProvider,
 } from 'firebase/auth';
 import { Platform } from 'react-native';
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc, query, collection, where, getDocs } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, googleProvider, storage } from '../config/firebase';
+import { sendOTP, verifyOTP, formatPhoneNumber } from './twilio';
 
 // ============================================================================
 // Types & Interfaces
@@ -48,6 +49,7 @@ interface AuthResponse {
 export interface UserProfileData {
   fullName?: string;
   mobileNumber?: string;
+  phoneNumber?: string;
   email?: string;
   state?: string;
   district?: string;
@@ -62,6 +64,9 @@ export interface UserProfileData {
   businessType?: string;
   updatedAt?: unknown;
   createdAt?: unknown;
+  isPhoneVerified?: boolean;
+  phoneAuthPassword?: string; // Stored password for phone authentication
+  authMethod?: 'phone' | 'email';
 }
 
 /**
@@ -288,6 +293,364 @@ export const signInWithGoogle = async (): Promise<AuthResponse> => {
       errorCode: authError.code,
     };
   }
+};
+
+// ============================================================================
+// Phone Authentication Functions
+// ============================================================================
+
+/**
+ * Send OTP to phone number for sign up or sign in
+ * 
+ * @param phoneNumber - Phone number in E.164 format (e.g., +919876543210)
+ * @returns Promise<AuthResponse> - Success status and message
+ */
+export const sendPhoneOTP = async (phoneNumber: string): Promise<AuthResponse> => {
+  try {
+    const formattedPhone = formatPhoneNumber(phoneNumber);
+    const result = await sendOTP(formattedPhone);
+
+    if (!result.success) {
+      return {
+        success: false,
+        user: null,
+        message: result.message,
+        errorCode: result.errorCode,
+      };
+    }
+
+    return {
+      success: true,
+      user: null,
+      message: 'OTP sent successfully to your phone!',
+    };
+  } catch (error: any) {
+    console.error('Send phone OTP error:', error);
+    return {
+      success: false,
+      user: null,
+      message: 'Failed to send OTP. Please try again.',
+      errorCode: 'phone/send-otp-failed',
+    };
+  }
+};
+
+/**
+ * Sign up with phone number and OTP
+ * Creates a new user account after verifying OTP
+ * 
+ * @param phoneNumber - Phone number in E.164 format
+ * @param otp - 6-digit OTP code
+ * @param tempPassword - Temporary password for Firebase Auth (auto-generated)
+ * @returns Promise<AuthResponse> - Success status, user object, and message
+ */
+export const signUpWithPhone = async (
+  phoneNumber: string,
+  otp: string,
+  tempPassword?: string
+): Promise<AuthResponse> => {
+  try {
+    const formattedPhone = formatPhoneNumber(phoneNumber);
+    
+    // Verify OTP first
+    const verifyResult = await verifyOTP(formattedPhone, otp);
+    
+    if (!verifyResult.success || !verifyResult.valid) {
+      return {
+        success: false,
+        user: null,
+        message: verifyResult.message || 'Invalid OTP code',
+        errorCode: 'phone/invalid-otp',
+      };
+    }
+
+    // Create a Firebase Auth account with phone-based email
+    // Since Firebase requires email, we create a unique email based on phone number
+    const syntheticEmail = `${formattedPhone.replace(/\+/g, '')}@phone.app`;
+    const password = tempPassword || generateRandomPassword();
+
+    // Check if user already exists in Firebase Auth
+    let userCredential;
+    try {
+      userCredential = await createUserWithEmailAndPassword(
+        auth,
+        syntheticEmail,
+        password
+      );
+    } catch (authError: any) {
+      // If email already exists, user needs to sign in instead
+      if (authError.code === 'auth/email-already-in-use') {
+        return {
+          success: false,
+          user: null,
+          message: 'An account with this phone number already exists. Please sign in instead.',
+          errorCode: 'phone/phone-already-in-use',
+        };
+      }
+      throw authError;
+    }
+
+    // Create profile document in Firestore (including password for phone sign-in)
+    console.log('Creating Firestore profile for user:', userCredential.user.uid);
+    try {
+      await setDoc(
+        doc(db, 'users', userCredential.user.uid),
+        {
+          phoneNumber: formattedPhone,
+          mobileNumber: formattedPhone,
+          isPhoneVerified: true,
+          authMethod: 'phone',
+          phoneAuthPassword: password, // Store password for sign-in
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      console.log('Firestore profile created successfully with auth password');
+    } catch (dbError) {
+      console.error('Profile Firestore write failed:', dbError);
+      // Don't fail signup if Firestore write fails
+    }
+
+    return {
+      success: true,
+      user: userCredential.user,
+      message: 'Account created successfully!',
+    };
+  } catch (error: any) {
+    console.error('Phone sign up error:', error);
+    
+    const authError = error as AuthError;
+    return {
+      success: false,
+      user: null,
+      message: getErrorMessage(authError.code) || 'Sign up failed. Please try again.',
+      errorCode: authError.code,
+    };
+  }
+};
+
+/**
+ * Sign in with phone number and OTP
+ * 
+ * @param phoneNumber - Phone number in E.164 format
+ * @param otp - 6-digit OTP code
+ * @returns Promise<AuthResponse> - Success status, user object, and message
+ */
+export const signInWithPhone = async (
+  phoneNumber: string,
+  otp: string
+): Promise<AuthResponse> => {
+  try {
+    const formattedPhone = formatPhoneNumber(phoneNumber);
+    
+    // Verify OTP first via backend
+    console.log('Verifying OTP for sign-in:', formattedPhone);
+    const verifyResult = await verifyOTP(formattedPhone, otp);
+    
+    if (!verifyResult.success || !verifyResult.valid) {
+      return {
+        success: false,
+        user: null,
+        message: verifyResult.message || 'Invalid OTP code',
+        errorCode: 'phone/invalid-otp',
+      };
+    }
+
+    console.log('OTP verified successfully');
+    
+    // Try to find the user in Firestore to get their password
+    console.log('Looking up user profile...');
+    const userProfile = await getUserByPhoneNumber(formattedPhone);
+    
+    if (!userProfile) {
+      console.log('No user profile found in Firestore');
+      return {
+        success: false,
+        user: null,
+        message: 'No account found with this phone number. Please sign up first.',
+        errorCode: 'phone/user-not-found',
+      };
+    }
+    
+    console.log('User profile found, attempting Firebase sign-in...');
+    
+    // Get the stored password for phone authentication
+    let storedPassword = userProfile.phoneAuthPassword;
+    
+    // Get the user's Firebase Auth synthetic email
+    const syntheticEmail = `${formattedPhone.replace(/\+/g, '')}@phone.app`;
+    
+    if (!storedPassword) {
+      console.log('⚠️ Legacy account without stored password detected');
+      console.log('Attempting to sign in anyway since OTP is verified...');
+      
+      // For legacy accounts, try multiple approaches
+      // Approach 1: Check if already signed in
+      if (auth.currentUser && auth.currentUser.email === syntheticEmail) {
+        console.log('✓ User already authenticated in Firebase');
+        
+        // Update Firestore with a new password for future logins
+        const newPassword = generateRandomPassword();
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('phoneNumber', '==', formattedPhone));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          await setDoc(
+            doc(db, 'users', querySnapshot.docs[0].id),
+            { phoneAuthPassword: newPassword },
+            { merge: true }
+          );
+          console.log('✓ Password updated for future logins');
+        }
+        
+        return {
+          success: true,
+          user: auth.currentUser,
+          message: 'Signed in successfully!',
+        };
+      }
+      
+      // Approach 2: Try common passwords (last resort for migration)
+      console.log('Trying to recover legacy account...');
+      
+      // Since we can't authenticate without the password, we need the user to re-register
+      // But first, let's try to recover their data
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('phoneNumber', '==', formattedPhone));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        return {
+          success: false,
+          user: null,
+          message: 'Account data not found. Please sign up again.',
+          errorCode: 'phone/data-not-found',
+        };
+      }
+      
+      return {
+        success: false,
+        user: null,
+        message: 'Legacy account detected. Please delete your account in Firebase Console and sign up again, or contact support.',
+        errorCode: 'phone/legacy-account',
+      };
+    }
+    
+    // Sign in with Firebase using the stored password
+    console.log('Authenticating with Firebase Auth...');
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      syntheticEmail,
+      storedPassword
+    );
+    
+    console.log('Firebase authentication successful!');
+    
+    return {
+      success: true,
+      user: userCredential.user,
+      message: 'Signed in successfully!',
+    };
+  } catch (error: any) {
+    console.error('Phone sign in error:', error);
+    const authError = error as AuthError;
+    return {
+      success: false,
+      user: null,
+      message: getErrorMessage(authError.code) || 'Sign in failed. Please try again.',
+      errorCode: authError.code || 'phone/sign-in-failed',
+    };
+  }
+};
+
+/**
+ * Complete phone sign-in after OTP verification
+ * This function signs in the user using stored credentials
+ * 
+ * @param phoneNumber - Verified phone number
+ * @returns Promise<AuthResponse>
+ */
+export const completePhoneSignIn = async (
+  phoneNumber: string,
+  storedPassword: string
+): Promise<AuthResponse> => {
+  try {
+    const formattedPhone = formatPhoneNumber(phoneNumber);
+    const syntheticEmail = `${formattedPhone.replace(/\+/g, '')}@phone.app`;
+    
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      syntheticEmail,
+      storedPassword
+    );
+
+    return {
+      success: true,
+      user: userCredential.user,
+      message: 'Signed in successfully!',
+    };
+  } catch (error: any) {
+    console.error('Complete phone sign in error:', error);
+    return {
+      success: false,
+      user: null,
+      message: 'Sign in failed. Please try again.',
+      errorCode: error.code,
+    };
+  }
+};
+
+/**
+ * Helper: Get user profile by phone number
+ * Returns null if not found OR if there's a permission error
+ */
+const getUserByPhoneNumber = async (phoneNumber: string): Promise<UserProfileData | null> => {
+  try {
+    const usersRef = collection(db, 'users');
+    const q = query(
+      usersRef,
+      where('phoneNumber', '==', phoneNumber)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      // Also check mobileNumber field for backward compatibility
+      const q2 = query(usersRef, where('mobileNumber', '==', phoneNumber));
+      const querySnapshot2 = await getDocs(q2);
+      
+      if (querySnapshot2.empty) {
+        console.log('No user found with phone number:', phoneNumber);
+        return null;
+      }
+      
+      const doc = querySnapshot2.docs[0];
+      return { ...doc.data(), uid: doc.id } as UserProfileData;
+    }
+    
+    const doc = querySnapshot.docs[0];
+    return { ...doc.data(), uid: doc.id } as UserProfileData;
+  } catch (error: any) {
+    console.error('Error getting user by phone:', error);
+    
+    // If it's a permission error, we need to handle it differently
+    if (error.code === 'permission-denied' || error.message?.includes('Missing or insufficient permissions')) {
+      console.warn('⚠️ Firestore permission error - Please deploy security rules!');
+      console.warn('See firestore.rules file and deploy to Firebase Console');
+    }
+    
+    // Return null instead of throwing - let the calling function handle it
+    return null;
+  }
+};
+
+/**
+ * Helper: Generate random password for phone-based accounts
+ */
+const generateRandomPassword = (): string => {
+  return Math.random().toString(36).slice(-16) + Math.random().toString(36).slice(-16);
 };
 
 /**

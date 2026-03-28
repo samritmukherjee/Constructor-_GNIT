@@ -1,5 +1,13 @@
 import * as Location from 'expo-location';
 import { INDIAN_DISTRICTS, INDIAN_STATES } from '../constants/data';
+import { auth, db } from '../config/firebase';
+import {
+  doc,
+  onSnapshot,
+  serverTimestamp,
+  Timestamp,
+  updateDoc,
+} from 'firebase/firestore';
 
 export type DeviceCoords = { latitude: number; longitude: number };
 
@@ -155,5 +163,92 @@ export const detectCurrentLocation = async (): Promise<DetectLocationResult> => 
     };
   } catch (e: any) {
     return { ok: false, reason: 'error', message: e?.message };
+  }
+};
+
+export type LastKnownLocation = {
+  lat: number;
+  lng: number;
+  accuracy?: number;
+  updatedAtClient?: Timestamp;
+  updatedAtServer?: unknown;
+};
+
+export const updateMyLastKnownLocation = async (args: {
+  lat: number;
+  lng: number;
+  accuracy?: number;
+}): Promise<{ success: true } | { success: false; message: string }> => {
+  const user = auth.currentUser;
+  if (!user) return { success: false, message: 'Not signed in.' };
+
+  try {
+    await updateDoc(doc(db, 'users', user.uid), {
+      lastLocation: {
+        lat: args.lat,
+        lng: args.lng,
+        accuracy: args.accuracy,
+        updatedAtClient: Timestamp.now(),
+        updatedAtServer: serverTimestamp(),
+      },
+      updatedAt: serverTimestamp(),
+    } as any);
+    return { success: true };
+  } catch (e) {
+    console.error('updateMyLastKnownLocation error:', e);
+    return { success: false, message: 'Failed to update location.' };
+  }
+};
+
+export const subscribeToUserLastKnownLocation = (
+  uid: string,
+  onLocation: (location: { lat: number; lng: number; updatedAt?: Date } | null) => void
+): (() => void) => {
+  const ref = doc(db, 'users', uid);
+  return onSnapshot(
+    ref,
+    (snap) => {
+      if (!snap.exists()) {
+        onLocation(null);
+        return;
+      }
+      const data = snap.data() as any;
+      const raw = data?.lastLocation;
+      if (!raw || typeof raw.lat !== 'number' || typeof raw.lng !== 'number') {
+        onLocation(null);
+        return;
+      }
+      const updatedAt = raw.updatedAtClient?.toDate?.() ?? undefined;
+      onLocation({ lat: raw.lat, lng: raw.lng, updatedAt });
+    },
+    (err) => {
+      console.error('subscribeToUserLastKnownLocation error:', err);
+      onLocation(null);
+    }
+  );
+};
+
+// Best-effort updater: does NOT prompt for permission.
+// It will only update if the user has already granted foreground location permission.
+export const tryUpdateMyLastKnownLocationNoPrompt = async (): Promise<void> => {
+  try {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const perm = await Location.getForegroundPermissionsAsync();
+    if (perm.status !== 'granted') return;
+
+    const pos = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Balanced,
+    });
+
+    await updateMyLastKnownLocation({
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude,
+      accuracy: pos.coords.accuracy ?? undefined,
+    });
+  } catch (e) {
+    // Silent fail: location is optional.
+    console.warn('tryUpdateMyLastKnownLocationNoPrompt failed:', e);
   }
 };

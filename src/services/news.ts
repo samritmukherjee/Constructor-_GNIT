@@ -18,6 +18,31 @@ export interface NewsArticle {
 const PERPLEXITY_API_KEY = process.env.EXPO_PUBLIC_PERPLEXITY_API_KEY;
 const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';
 
+const buildNewsPrompt = (params: {
+  maxArticles: number;
+  state: string;
+  languageName: string;
+  fullContentWordRange: string;
+}): string => {
+  const { maxArticles, state, languageName, fullContentWordRange } = params;
+
+  return `Provide exactly ${maxArticles} recent agricultural news items for ${state}, India.
+
+CRITICAL REQUIREMENTS:
+- All text MUST be in ${languageName}.
+- PRIORITY: items from ${state} first, then other Indian states.
+- Output MUST be valid JSON ONLY (a JSON array). No extra text.
+- No markdown, no bullet points, no formatting, no explanations.
+- Do NOT include citations/references like [1] or (1).
+- Do NOT include any square brackets inside strings.
+- fullContent MUST be detailed (approximately ${fullContentWordRange} words), explaining the full story with context and impact.
+
+Return a JSON array in this exact shape:
+[{"title":"<max 70 chars>","summary":"<max 18 words>","fullContent":"<detailed paragraph>","source":"<source>","category":"agriculture|weather|market|policy|technology","region":"${state}"}]
+
+The last character of your response must be ]`;
+};
+
 const extractFirstJsonArray = (text: string): string | null => {
   const start = text.indexOf('[');
   if (start === -1) return null;
@@ -141,115 +166,123 @@ export const fetchAgriculturalNews = async (
     };
     const languageName = languageMap[language] || 'English';
     
-    const prompt = `Provide exactly ${maxArticles} recent agricultural news items for ${state}, India.
+    const prompts = [
+      buildNewsPrompt({ maxArticles, state, languageName, fullContentWordRange: '220-280' }),
+      // Retry once with shorter content to reduce truncation / malformed JSON risk
+      buildNewsPrompt({ maxArticles, state, languageName, fullContentWordRange: '130-170' }),
+    ];
 
-CRITICAL REQUIREMENTS:
-- All text MUST be in ${languageName}.
-- PRIORITY: items from ${state} first, then other Indian states.
-- Output MUST be valid JSON ONLY. No extra text.
-- No markdown, no bullet points, no formatting.
-- Do NOT include citations/references like [1] or (1).
-- Do NOT include any square brackets inside strings.
-- fullContent MUST be detailed and comprehensive (approximately 250-300 words), explaining the full story with context, impact, and relevant details.
+    const parseArticlesFromContent = (content: string): any[] | null => {
+      if (!content) return null;
+      let jsonText = content.trim();
 
-Return a JSON array (and ONLY the array) in this exact shape (MINIFY JSON, no newlines):
-[{"title":"<max 70 chars>","summary":"<max 18 words>","fullContent":"<detailed paragraph, 250-300 words>","source":"<source>","category":"agriculture|weather|market|policy|technology","region":"${state}"}]
-
-The last character of your response must be ]`;
-
-    const response = await fetch(PERPLEXITY_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'sonar',
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        max_tokens: 4000,
-        temperature: 0.2,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Perplexity API error:', response.status, errorText);
-      throw new Error(`API request failed: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-
-    if (!content) {
-      console.warn('No content in API response, using demo news');
-      return getDemoNews(state);
-    }
-
-    // Extract JSON from response (Perplexity sometimes includes markdown formatting)
-    let jsonText = content.trim();
-    
-    // Remove markdown code blocks
-    if (jsonText.startsWith('```json')) {
-      jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    } else if (jsonText.startsWith('```')) {
-      jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
-    }
-    
-    const extracted = extractFirstJsonArray(jsonText);
-    if (extracted) {
-      jsonText = extracted;
-    }
-
-    let articles: any;
-    try {
-      articles = JSON.parse(jsonText);
-    } catch {
-      const isTruncated = !content.trimEnd().endsWith(']');
-      const objectSnippets = extractJsonObjectsFromArrayLike(jsonText);
-      const parsedObjects = objectSnippets
-        .map((obj) => {
-          try {
-            return JSON.parse(obj);
-          } catch {
-            return null;
-          }
-        })
-        .filter(Boolean);
-
-      if (parsedObjects.length > 0) {
-        articles = parsedObjects;
-      } else {
-        console.error('JSON parse error. Response length:', content.length);
-        console.error('Is response truncated?', isTruncated);
-        console.warn('Could not parse API response, using demo news');
-        return getDemoNews(state);
+      // Remove markdown code blocks
+      if (jsonText.startsWith('```json')) {
+        jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (jsonText.startsWith('```')) {
+        jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
       }
+
+      const extracted = extractFirstJsonArray(jsonText);
+      if (extracted) {
+        jsonText = extracted;
+      }
+
+      try {
+        const parsed = JSON.parse(jsonText);
+        return Array.isArray(parsed) ? parsed : null;
+      } catch {
+        const objectSnippets = extractJsonObjectsFromArrayLike(jsonText);
+        const parsedObjects = objectSnippets
+          .map((obj) => {
+            try {
+              return JSON.parse(obj);
+            } catch {
+              return null;
+            }
+          })
+          .filter(Boolean);
+
+        return parsedObjects.length > 0 ? (parsedObjects as any[]) : null;
+      }
+    };
+
+    for (let attempt = 0; attempt < prompts.length; attempt++) {
+      const prompt = prompts[attempt];
+
+      const response = await fetch(PERPLEXITY_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'sonar',
+          messages: [
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+          max_tokens: 4000,
+          temperature: 0.2,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const status = response.status;
+        // Invalid/unauthorized keys are common during setup; fall back quietly to demo news.
+        if (status === 401 || status === 403) {
+          console.warn(
+            `Perplexity API unauthorized (${status}). Check EXPO_PUBLIC_PERPLEXITY_API_KEY. Using demo news.`
+          );
+          return getDemoNews(state);
+        }
+
+        console.error('Perplexity API error:', status, errorText);
+        if (attempt === prompts.length - 1) {
+          throw new Error(`API request failed: ${status}`);
+        }
+        continue;
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      if (!content) {
+        if (attempt === prompts.length - 1) {
+          console.warn('No content in API response, using demo news');
+          return getDemoNews(state);
+        }
+        continue;
+      }
+
+      const articles = parseArticlesFromContent(content);
+      if (!articles || articles.length === 0) {
+        if (attempt === prompts.length - 1) {
+          console.warn('Invalid or empty articles array, using demo news');
+          return getDemoNews(state);
+        }
+        continue;
+      }
+
+      // Transform and validate articles
+      const newsArticles: NewsArticle[] = articles.slice(0, maxArticles).map((article, index) => ({
+        id: `news-${Date.now()}-${index}`,
+        title: article.title || 'Untitled News',
+        summary: article.summary || 'No summary available',
+        fullContent: article.fullContent || article.summary || 'No content available',
+        source: article.source || 'Agricultural News',
+        category: validateCategory(article.category),
+        region: article.region || state,
+        publishedAt: today,
+        relevanceScore: 100 - (index * 10), // Higher score for top results
+      }));
+
+      return newsArticles;
     }
 
-    if (!Array.isArray(articles) || articles.length === 0) {
-      console.warn('Invalid or empty articles array, using demo news');
-      return getDemoNews(state);
-    }
-
-    // Transform and validate articles
-    const newsArticles: NewsArticle[] = articles.slice(0, maxArticles).map((article, index) => ({
-      id: `news-${Date.now()}-${index}`,
-      title: article.title || 'Untitled News',
-      summary: article.summary || 'No summary available',
-      fullContent: article.fullContent || article.summary || 'No content available',
-      source: article.source || 'Agricultural News',
-      category: validateCategory(article.category),
-      region: article.region || state,
-      publishedAt: today,
-      relevanceScore: 100 - (index * 10), // Higher score for top results
-    }));
-
-    return newsArticles;
+    return getDemoNews(state);
   } catch (error: any) {
     console.error('Error fetching agricultural news:', error);
     console.warn('Falling back to demo news due to error:', error?.message);

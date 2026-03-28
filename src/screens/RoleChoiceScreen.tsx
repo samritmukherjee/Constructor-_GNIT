@@ -12,7 +12,8 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Sprout, ShoppingBasket, ArrowLeft } from 'lucide-react-native';
+import { Sprout, ShoppingBasket } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { TouchableOpacity } from 'react-native';
 
@@ -118,33 +119,9 @@ export const RoleChoiceScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         {/* Back Button */}
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          className="mb-8"
-          style={{
-            alignSelf: 'flex-start',
-            backgroundColor: '#D1F4E0',
-            paddingHorizontal: 18,
-            paddingVertical: 10,
-            borderRadius: 24,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 8,
-            shadowColor: '#16A34A',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.12,
-            shadowRadius: 5,
-            elevation: 3,
-          }}
-        >
-          <ArrowLeft size={20} color="#16A34A" strokeWidth={2.5} />
-          <Text 
-            className="text-green-600 font-semibold" 
-            style={{ fontSize: 15, lineHeight: 20, letterSpacing: 0.3 }}
-          >
-            {tr('common.back', 'Back')}
-          </Text>
-        </TouchableOpacity>
+        <View className="mb-8">
+          <BackButton />
+        </View>
 
         {/* Header Section */}
         <View className="items-center" style={{ marginBottom: 40 }}>

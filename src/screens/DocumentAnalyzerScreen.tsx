@@ -2,25 +2,32 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
+  Modal,
   ScrollView,
   TouchableOpacity,
+  TextInput,
   ActivityIndicator,
   SafeAreaView,
   Alert,
   Animated,
   StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import * as Speech from 'expo-speech';
-import { ArrowLeft, FileText, Paperclip, ClipboardList, Camera, Volume2, Square, RefreshCw, Sparkles, Upload } from 'lucide-react-native';
+import { Audio } from 'expo-av';
+import { FileText, Paperclip, ClipboardList, Camera, Volume2, Square, RefreshCw, Sparkles, Upload, MessageCircle, Mic, Send, X } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { analyzeDocument, isGeminiConfigured } from '../services/gemini';
+import { analyzeDocument, askQuestionAboutDocument, isGeminiConfigured, transcribeAudio } from '../services/gemini';
+import Loader_One from '../components/Loader_One';
 
 type DocumentAnalyzerScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -33,10 +40,18 @@ interface AnalysisResult {
   actionRequired: string;
 }
 
+interface QAMessage {
+  id: string;
+  text: string;
+  isUser: boolean;
+  timestamp: Date;
+}
+
 export const DocumentAnalyzerScreen = () => {
   const { t, i18n } = useTranslation();
   const navigation = useNavigation<DocumentAnalyzerScreenNavigationProp>();
   const insets = useSafeAreaInsets();
+  const isMountedRef = useRef(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<{
@@ -51,6 +66,16 @@ export const DocumentAnalyzerScreen = () => {
   const [ttsVoiceId, setTtsVoiceId] = useState<string | undefined>(undefined);
   const speakSessionRef = useRef(0);
 
+  // Ask Question (document Q&A) state
+  const [qaVisible, setQaVisible] = useState(false);
+  const [qaInput, setQaInput] = useState('');
+  const [qaMessages, setQaMessages] = useState<QAMessage[]>([]);
+  const [qaIsTyping, setQaIsTyping] = useState(false);
+  const [qaIsRecording, setQaIsRecording] = useState(false);
+  const qaScrollViewRef = useRef<ScrollView>(null);
+  const qaPulseAnim = useRef(new Animated.Value(1)).current;
+  const recordingRef = useRef<Audio.Recording | null>(null);
+
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -61,6 +86,13 @@ export const DocumentAnalyzerScreen = () => {
   const appLanguage = i18n.language || 'en';
 
   // Entrance animations
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -104,6 +136,36 @@ export const DocumentAnalyzerScreen = () => {
       ])
     ).start();
   }, []);
+
+  // Pulsing animation for Q&A recording indicator
+  useEffect(() => {
+    if (qaIsRecording) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(qaPulseAnim, {
+            toValue: 1.25,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+          Animated.timing(qaPulseAnim, {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      qaPulseAnim.setValue(1);
+    }
+  }, [qaIsRecording]);
+
+  // Auto-scroll in Q&A modal
+  useEffect(() => {
+    if (!qaVisible) return;
+    setTimeout(() => {
+      qaScrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  }, [qaMessages, qaIsTyping, qaVisible]);
 
   const handleDocumentUpload = async () => {
     try {
@@ -202,8 +264,208 @@ export const DocumentAnalyzerScreen = () => {
     setIsAnalyzing(false);
     setAnalysisResult(null);
     setAnalysisError(null);
+    setQaVisible(false);
+    setQaInput('');
+    setQaMessages([]);
+    setQaIsTyping(false);
+    setQaIsRecording(false);
+    void cleanupRecording();
     Speech.stop();
     setIsSpeaking(false);
+  };
+
+  const cleanupRecording = async () => {
+    try {
+      if (recordingRef.current) {
+        try {
+          await recordingRef.current.stopAndUnloadAsync();
+        } catch {
+          // ignore
+        }
+        recordingRef.current = null;
+      }
+    } catch {
+      // ignore
+    } finally {
+      setQaIsRecording(false);
+    }
+  };
+
+  const startQaRecording = async () => {
+    try {
+      // Request permissions
+      const { granted } = await Audio.requestPermissionsAsync();
+      if (!granted) {
+        Alert.alert(
+          t('chatbot.permissionDenied') || 'Permission Denied',
+          t('chatbot.microphonePermission') || 'Microphone permission is required for voice input.'
+        );
+        return;
+      }
+
+      // Configure audio mode
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      // Start recording
+      const recording = new Audio.Recording();
+      await recording.prepareToRecordAsync({
+        isMeteringEnabled: true,
+        android: {
+          extension: '.m4a',
+          outputFormat: 2,
+          audioEncoder: 3,
+          sampleRate: 44100,
+          numberOfChannels: 2,
+          bitRate: 128000,
+        },
+        ios: {
+          extension: '.m4a',
+          outputFormat: 'mpeg4AAC',
+          audioQuality: 127,
+          sampleRate: 44100,
+          numberOfChannels: 2,
+          bitRate: 128000,
+          linearPCMBitDepth: 16,
+          linearPCMIsBigEndian: false,
+          linearPCMIsFloat: false,
+        },
+        web: {
+          mimeType: 'audio/webm',
+          bitsPerSecond: 128000,
+        },
+      });
+
+      await recording.startAsync();
+      recordingRef.current = recording;
+      setQaIsRecording(true);
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      Alert.alert(
+        t('chatbot.error') || 'Error',
+        'Failed to start voice recording. Please try again.'
+      );
+    }
+  };
+
+  const stopQaRecording = async () => {
+    try {
+      if (!recordingRef.current) return;
+
+      setQaIsRecording(false);
+      await recordingRef.current.stopAndUnloadAsync();
+      const uri = recordingRef.current.getURI();
+      recordingRef.current = null;
+
+      if (!uri) {
+        Alert.alert(t('chatbot.error') || 'Error', 'No audio recorded');
+        return;
+      }
+
+      // Show processing indicator
+      setQaInput(t('chatbot.processing') || 'Processing audio...');
+
+      // Detect language
+      const currentLanguage = i18n.language || 'en';
+
+      // Send audio file to Gemini API for transcription
+      try {
+        console.log('Sending audio to Gemini API for transcription...');
+
+        const transcribedText = await transcribeAudio({
+          audioUri: uri,
+          language: currentLanguage,
+        });
+
+        console.log('Transcription successful:', transcribedText);
+
+        if (transcribedText && transcribedText.trim()) {
+          setQaInput(transcribedText);
+        } else {
+          throw new Error('No transcription received');
+        }
+      } catch (apiError: any) {
+        console.error('Speech-to-text API error:', apiError);
+        setQaInput('');
+        Alert.alert(
+          t('chatbot.error') || 'Error',
+          apiError.message || 'Voice recognition failed. Please try again or type your question.'
+        );
+      }
+    } catch (error) {
+      console.error('Error stopping recording:', error);
+      setQaIsRecording(false);
+      setQaInput('');
+    }
+  };
+
+  const openQaModal = () => {
+    if (!selectedDocument) return;
+    setQaVisible(true);
+  };
+
+  const closeQaModal = async () => {
+    await cleanupRecording();
+    setQaVisible(false);
+    setQaIsTyping(false);
+  };
+
+  const handleSendQuestion = async () => {
+    const question = qaInput.trim();
+    if (!question) return;
+    if (!selectedDocument) return;
+
+    if (!isGeminiConfigured()) {
+      Alert.alert('Configuration Error', 'Gemini API is not configured. Please add GEMINI_API_KEY to your environment.');
+      return;
+    }
+
+    const userMessage: QAMessage = {
+      id: Date.now().toString(),
+      text: question,
+      isUser: true,
+      timestamp: new Date(),
+    };
+
+    setQaMessages((prev) => [...prev, userMessage]);
+    setQaInput('');
+    setQaIsTyping(true);
+
+    try {
+      const answer = await askQuestionAboutDocument({
+        fileUri: selectedDocument.uri,
+        fileName: selectedDocument.name,
+        mimeType: selectedDocument.mimeType,
+        question,
+        language: appLanguage,
+      });
+
+      if (!isMountedRef.current) return;
+
+      const botMessage: QAMessage = {
+        id: (Date.now() + 1).toString(),
+        text: answer,
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setQaMessages((prev) => [...prev, botMessage]);
+    } catch (err: any) {
+      console.error('Document Q&A error:', err);
+      if (!isMountedRef.current) return;
+
+      // Show error message in chat instead of alert
+      const errorMessage: QAMessage = {
+        id: (Date.now() + 1).toString(),
+        text: err?.message || 'Failed to answer your question. Please try again.',
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setQaMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      if (isMountedRef.current) setQaIsTyping(false);
+    }
   };
 
   const handleReanalyze = async () => {
@@ -423,98 +685,62 @@ export const DocumentAnalyzerScreen = () => {
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) + 24 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Premium Gradient Header */}
-        <LinearGradient
-          colors={['#22C55E', '#16A34A', '#15803D']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+        {/* Professional White Header */}
+        <View
           style={{
+            backgroundColor: '#FFFFFF',
             paddingTop: insets.top + 16,
-            paddingBottom: 40,
+            paddingBottom: 32,
             paddingHorizontal: 24,
-            borderBottomLeftRadius: 32,
-            borderBottomRightRadius: 32,
-            shadowColor: '#16A34A',
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.3,
-            shadowRadius: 16,
-            elevation: 12,
+            borderBottomWidth: 1,
+            borderBottomColor: '#E5E7EB',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.05,
+            shadowRadius: 8,
+            elevation: 4,
           }}
         >
           <Animated.View style={{ opacity: fadeAnim }}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              activeOpacity={0.7}
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                paddingHorizontal: 18,
-                paddingVertical: 10,
-                borderRadius: 24,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.12,
-                shadowRadius: 5,
-                elevation: 3,
-                alignSelf: 'flex-start',
-                marginBottom: 24,
-              }}
-            >
-              <ArrowLeft size={20} color="#16A34A" strokeWidth={2.5} />
-              <Text style={{ 
-                color: "#16A34A",
-                fontWeight: '600',
-                fontSize: 15,
-              }}>
-                {(() => {
-                  try {
-                    const translated = t('common.back');
-                    return translated === 'common.back' ? 'Back' : translated;
-                  } catch {
-                    return 'Back';
-                  }
-                })()}
-              </Text>
-            </TouchableOpacity>
+            <View style={{ marginBottom: 20 }}>
+              <BackButton />
+            </View>
 
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
               <View style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                borderRadius: 20,
-                padding: 16,
-                shadowColor: '#fff',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
+                backgroundColor: '#F0FDF4',
+                borderRadius: 16,
+                padding: 14,
+                borderWidth: 1,
+                borderColor: '#BBF7D0',
               }}>
-                <FileText size={40} color="#FFFFFF" strokeWidth={2.5} />
+                <FileText size={32} color="#16A34A" strokeWidth={2.5} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{
-                  fontSize: 32,
-                  fontWeight: 'bold',
-                  color: '#FFFFFF',
-                  marginBottom: 6,
-                  letterSpacing: 0.5,
+                  fontSize: 28,
+                  fontWeight: '700',
+                  color: '#111827',
+                  marginBottom: 4,
+                  letterSpacing: -0.5,
                 }}>
                   {t('analyzer.title')}
                 </Text>
                 <Text style={{
-                  fontSize: 15,
-                  color: 'rgba(255, 255, 255, 0.95)',
+                  fontSize: 14,
+                  color: '#6B7280',
                   lineHeight: 20,
+                  fontWeight: '500',
                 }}>
                   {t('analyzer.subtitle')}
                 </Text>
               </View>
             </View>
           </Animated.View>
-        </LinearGradient>
+        </View>
 
-        <Animated.View style={{ 
-          paddingHorizontal: 24, 
+        <Animated.View style={{
+          paddingHorizontal: 24,
           marginTop: 28,
           opacity: fadeAnim,
           transform: [{ translateY: slideAnim }],
@@ -522,11 +748,11 @@ export const DocumentAnalyzerScreen = () => {
           {/* Upload Area */}
           {!hasAnalyzed && (
             <View style={{ marginBottom: 24 }}>
-              <View style={{ 
-                flexDirection: 'row', 
-                alignItems: 'center', 
-                gap: 8, 
-                marginBottom: 20 
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                marginBottom: 20
               }}>
                 <Sparkles size={24} color="#16A34A" strokeWidth={2.5} />
                 <Text style={{
@@ -541,7 +767,7 @@ export const DocumentAnalyzerScreen = () => {
               {/* Premium Upload Cards */}
               <View style={{ flexDirection: 'row', marginBottom: 20, gap: 16 }}>
                 {/* Upload from Gallery */}
-                <Animated.View style={{ 
+                <Animated.View style={{
                   flex: 1,
                   transform: [{ scale: uploadCardScale }],
                 }}>
@@ -560,9 +786,10 @@ export const DocumentAnalyzerScreen = () => {
                       shadowOpacity: 0.15,
                       shadowRadius: 12,
                       elevation: 6,
+                      minHeight: 180,
                     }}
                   >
-                    <View style={{ alignItems: 'center' }}>
+                    <View style={{ alignItems: 'center', flex: 1, justifyContent: 'center' }}>
                       <LinearGradient
                         colors={['#22C55E', '#16A34A']}
                         style={{
@@ -581,28 +808,31 @@ export const DocumentAnalyzerScreen = () => {
                       >
                         <Upload size={34} color="#FFFFFF" strokeWidth={2.5} />
                       </LinearGradient>
-                      <Text style={{
-                        color: '#111827',
-                        fontSize: 14,
-                        fontWeight: '700',
-                        textAlign: 'center',
-                      }}>
-                        {t('analyzer.uploadLabel')}
-                      </Text>
-                      <Text style={{
-                        color: '#64748B',
-                        fontSize: 11,
-                        marginTop: 4,
-                        textAlign: 'center',
-                      }}>
-                        JPG, PNG
-                      </Text>
+                      <View style={{ height: 56, justifyContent: 'center' }}>
+                        <Text style={{
+                          color: '#111827',
+                          fontSize: 14,
+                          fontWeight: '700',
+                          textAlign: 'center',
+                          paddingHorizontal: 4,
+                        }}>
+                          {t('analyzer.uploadLabel')}
+                        </Text>
+                        <Text style={{
+                          color: '#64748B',
+                          fontSize: 11,
+                          marginTop: 4,
+                          textAlign: 'center',
+                        }}>
+                          PDF, JPG, PNG
+                        </Text>
+                      </View>
                     </View>
                   </TouchableOpacity>
                 </Animated.View>
 
                 {/* Take Photo */}
-                <Animated.View style={{ 
+                <Animated.View style={{
                   flex: 1,
                   transform: [{ scale: cameraCardScale }],
                 }}>
@@ -621,9 +851,10 @@ export const DocumentAnalyzerScreen = () => {
                       shadowOpacity: 0.15,
                       shadowRadius: 12,
                       elevation: 6,
+                      minHeight: 180,
                     }}
                   >
-                    <View style={{ alignItems: 'center' }}>
+                    <View style={{ alignItems: 'center', flex: 1, justifyContent: 'center' }}>
                       <LinearGradient
                         colors={['#10B981', '#059669']}
                         style={{
@@ -642,22 +873,25 @@ export const DocumentAnalyzerScreen = () => {
                       >
                         <Camera size={34} color="#FFFFFF" strokeWidth={2.5} />
                       </LinearGradient>
-                      <Text style={{
-                        color: '#111827',
-                        fontSize: 14,
-                        fontWeight: '700',
-                        textAlign: 'center',
-                      }}>
-                        Take Photo
-                      </Text>
-                      <Text style={{
-                        color: '#64748B',
-                        fontSize: 11,
-                        marginTop: 4,
-                        textAlign: 'center',
-                      }}>
-                        Use Camera
-                      </Text>
+                      <View style={{ height: 56, justifyContent: 'center' }}>
+                        <Text style={{
+                          color: '#111827',
+                          fontSize: 14,
+                          fontWeight: '700',
+                          textAlign: 'center',
+                          paddingHorizontal: 4,
+                        }}>
+                          {t('disease.takePhoto', 'Take Photo')}
+                        </Text>
+                        <Text style={{
+                          color: '#64748B',
+                          fontSize: 11,
+                          marginTop: 4,
+                          textAlign: 'center',
+                        }}>
+                          {t('disease.useCamera', 'Use Camera')}
+                        </Text>
+                      </View>
                     </View>
                   </TouchableOpacity>
                 </Animated.View>
@@ -730,7 +964,7 @@ export const DocumentAnalyzerScreen = () => {
               {/* Supported Formats */}
               <View className="flex-row items-center justify-center mb-2">
                 <Text className="text-gray-500 text-sm">
-                  {t('analyzer.supportedFormats')}: JPG, PNG (Images only)
+                  {t('analyzer.supportedFormats')}: PDF, JPG, PNG
                 </Text>
               </View>
 
@@ -752,8 +986,8 @@ export const DocumentAnalyzerScreen = () => {
 
               {/* Premium Analyze Button */}
               <LinearGradient
-                colors={!selectedDocument || isAnalyzing 
-                  ? ['#D1D5DB', '#9CA3AF'] 
+                colors={!selectedDocument || isAnalyzing
+                  ? ['#D1D5DB', '#9CA3AF']
                   : ['#22C55E', '#16A34A']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
@@ -807,32 +1041,8 @@ export const DocumentAnalyzerScreen = () => {
               shadowOpacity: 0.15,
               shadowRadius: 16,
               elevation: 8,
-              transform: [{ scale: pulseAnim }],
             }}>
-              <View style={{
-                backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                borderRadius: 60,
-                padding: 20,
-                marginBottom: 20,
-              }}>
-                <ActivityIndicator size="large" color="#22C55E" />
-              </View>
-              <Text style={{
-                color: '#111827',
-                fontSize: 20,
-                fontWeight: 'bold',
-                marginBottom: 8,
-              }}>
-                {t('analyzer.analyzing')}
-              </Text>
-              <Text style={{
-                color: '#64748B',
-                fontSize: 14,
-                textAlign: 'center',
-                lineHeight: 20,
-              }}>
-                {t('analyzer.analyzingHint')}
-              </Text>
+              <Loader_One size={100} />
             </Animated.View>
           )}
 
@@ -939,6 +1149,44 @@ export const DocumentAnalyzerScreen = () => {
               </View>
 
               {/* Re-upload Button */}
+              <LinearGradient
+                colors={['#22C55E', '#16A34A']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{
+                  borderRadius: 14,
+                  marginBottom: 14,
+                  shadowColor: '#22C55E',
+                  shadowOffset: { width: 0, height: 6 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 10,
+                  elevation: 6,
+                }}
+              >
+                <TouchableOpacity
+                  onPress={openQaModal}
+                  activeOpacity={0.9}
+                  style={{
+                    paddingVertical: 14,
+                    paddingHorizontal: 16,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                  }}
+                >
+                  <MessageCircle size={20} color="#FFFFFF" strokeWidth={2.4} />
+                  <Text style={{
+                    color: '#FFFFFF',
+                    fontSize: 16,
+                    fontWeight: '700',
+                    letterSpacing: 0.2,
+                  }}>
+                    {t('analyzer.askQuestion', 'Ask Question')}
+                  </Text>
+                </TouchableOpacity>
+              </LinearGradient>
+
               <TouchableOpacity
                 onPress={handleReupload}
                 className="bg-white border-2 border-primary rounded-xl py-4 mb-4"
@@ -965,6 +1213,270 @@ export const DocumentAnalyzerScreen = () => {
           )}
         </Animated.View>
       </ScrollView>
+
+      {/* Ask Question Modal */}
+      <Modal
+        visible={qaVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={closeQaModal}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(17, 24, 39, 0.35)',
+          paddingTop: insets.top + 16,
+          paddingBottom: Math.max(insets.bottom, 16),
+          paddingHorizontal: 14,
+        }}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+            style={{ flex: 1 }}
+          >
+            <View style={{
+              flex: 1,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 24,
+              overflow: 'hidden',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.18,
+              shadowRadius: 18,
+              elevation: 12,
+            }}>
+              <View
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  paddingHorizontal: 18,
+                  paddingVertical: 16,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderBottomWidth: 1,
+                  borderBottomColor: '#E5E7EB',
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={{
+                    color: '#111827',
+                    fontSize: 18,
+                    fontWeight: '700',
+                    marginBottom: 2,
+                  }}>
+                    {t('analyzer.askQuestionTitle', 'Ask a question about this document')}
+                  </Text>
+                  <Text style={{
+                    color: '#6B7280',
+                    fontSize: 13,
+                    fontWeight: '500',
+                  }}>
+                    {t('analyzer.askQuestionHint', 'Gemini will answer using only this document.')}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  onPress={closeQaModal}
+                  activeOpacity={0.7}
+                  style={{
+                    backgroundColor: '#F3F4F6',
+                    borderRadius: 12,
+                    width: 36,
+                    height: 36,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginLeft: 12,
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                  }}
+                >
+                  <X size={18} color="#6B7280" strokeWidth={2.5} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                ref={qaScrollViewRef}
+                style={{ flex: 1, backgroundColor: '#F8FAFC' }}
+                contentContainerStyle={{ padding: 14, paddingBottom: 18 }}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {qaMessages.length === 0 && (
+                  <View style={{
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 18,
+                    padding: 14,
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                  }}>
+                    <Text style={{ color: '#111827', fontSize: 14, fontWeight: '700', marginBottom: 6 }}>
+                      {t('analyzer.askQuestion', 'Ask Question')}
+                    </Text>
+                    <Text style={{ color: '#475569', fontSize: 13, lineHeight: 18 }}>
+                      {t('analyzer.askQuestionEmpty', 'Try: “What is the deadline?” or “How much is the amount mentioned?”')}
+                    </Text>
+                  </View>
+                )}
+
+                {qaMessages.map((m) => (
+                  <View
+                    key={m.id}
+                    style={{
+                      alignItems: m.isUser ? 'flex-end' : 'flex-start',
+                      marginTop: 10,
+                    }}
+                  >
+                    <View style={{
+                      maxWidth: '92%',
+                      backgroundColor: m.isUser ? '#16A34A' : '#FFFFFF',
+                      borderRadius: 18,
+                      paddingHorizontal: 14,
+                      paddingVertical: 12,
+                      borderWidth: m.isUser ? 0 : 1,
+                      borderColor: '#E5E7EB',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.04,
+                      shadowRadius: 2,
+                      elevation: 1,
+                    }}>
+                      <Text style={{
+                        color: m.isUser ? '#FFFFFF' : '#0F172A',
+                        fontSize: 14,
+                        lineHeight: 20,
+                      }}>
+                        {m.text}
+                      </Text>
+                    </View>
+                    <Text style={{
+                      fontSize: 11,
+                      color: '#94A3B8',
+                      marginTop: 4,
+                    }}>
+                      {m.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  </View>
+                ))}
+
+                {qaIsTyping && (
+                  <View style={{ alignItems: 'flex-start', marginTop: 10 }}>
+                    <View style={{
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: 18,
+                      paddingHorizontal: 14,
+                      paddingVertical: 12,
+                      borderWidth: 1,
+                      borderColor: '#E5E7EB',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 10,
+                    }}>
+                      <ActivityIndicator size="small" color="#16A34A" />
+                      <Text style={{ color: '#334155', fontSize: 13, fontWeight: '600' }}>
+                        {t('analyzer.thinking', 'Thinking...')}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </ScrollView>
+
+              <View style={{
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                backgroundColor: '#FFFFFF',
+                borderTopWidth: 1,
+                borderTopColor: '#E5E7EB',
+              }}>
+                {qaIsRecording && (
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    paddingBottom: 8,
+                    gap: 8,
+                  }}>
+                    <Animated.View style={{ transform: [{ scale: qaPulseAnim }] }}>
+                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444' }} />
+                    </Animated.View>
+                    <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '700' }}>
+                      {t('chatbot.recording', 'Recording...')}
+                    </Text>
+                  </View>
+                )}
+
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 10,
+                }}>
+                  <Animated.View style={{ transform: [{ scale: qaIsRecording ? qaPulseAnim : 1 }] }}>
+                    <TouchableOpacity
+                      onPress={qaIsRecording ? stopQaRecording : startQaRecording}
+                      activeOpacity={0.85}
+                      disabled={qaIsTyping}
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 22,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: qaIsRecording ? '#EF4444' : '#E2E8F0',
+                        borderWidth: 1,
+                        borderColor: qaIsRecording ? '#FCA5A5' : '#CBD5E1',
+                      }}
+                    >
+                      <Mic size={18} color={qaIsRecording ? '#FFFFFF' : '#334155'} strokeWidth={2.4} />
+                    </TouchableOpacity>
+                  </Animated.View>
+
+                  <View style={{
+                    flex: 1,
+                    backgroundColor: '#F1F5F9',
+                    borderRadius: 18,
+                    borderWidth: 1,
+                    borderColor: '#E2E8F0',
+                    paddingHorizontal: 12,
+                    minHeight: 44,
+                    justifyContent: 'center',
+                  }}>
+                    <TextInput
+                      placeholder={t('analyzer.askQuestionPlaceholder', 'Type your question...')}
+                      placeholderTextColor="#94A3B8"
+                      value={qaInput}
+                      onChangeText={setQaInput}
+                      editable={!qaIsTyping}
+                      multiline
+                      onSubmitEditing={handleSendQuestion}
+                      style={{
+                        fontSize: 14,
+                        color: '#0F172A',
+                        lineHeight: 20,
+                        paddingVertical: 10,
+                        textAlignVertical: 'center',
+                      }}
+                    />
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={handleSendQuestion}
+                    activeOpacity={0.9}
+                    disabled={!qaInput.trim() || qaIsTyping || qaIsRecording}
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: (!qaInput.trim() || qaIsTyping || qaIsRecording) ? '#CBD5E1' : '#16A34A',
+                    }}
+                  >
+                    <Send size={18} color="#FFFFFF" strokeWidth={2.4} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
     </View>
   );
 };

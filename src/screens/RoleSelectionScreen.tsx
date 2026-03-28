@@ -8,6 +8,7 @@ import {
   Animated,
   Image,
   Pressable,
+  ActivityIndicator,
   StyleSheet,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +20,7 @@ import { Sprout, ShoppingBasket, LogIn, UserPlus } from 'lucide-react-native';
 import { Dropdown } from '../components/Dropdown';
 import { LANGUAGES } from '../constants/data';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { fetchCurrentUserProfile, onAuthStateChange } from '../services/auth';
 
 type RoleSelectionNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -29,6 +31,7 @@ export const RoleSelectionScreen = () => {
   const { t, i18n } = useTranslation();
   const navigation = useNavigation<RoleSelectionNavigationProp>();
   const [selectedLanguage, setSelectedLanguage] = useState(i18n.language || 'en');
+  const [checkingSession, setCheckingSession] = useState(true);
   const insets = useSafeAreaInsets();
 
   // Animation values
@@ -36,6 +39,7 @@ export const RoleSelectionScreen = () => {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const [signInScale] = useState(new Animated.Value(1));
   const [signUpScale] = useState(new Animated.Value(1));
+  const hasRedirectedRef = useRef(false);
 
   const tr = (key: string, fallback: string) => {
     try {
@@ -61,6 +65,44 @@ export const RoleSelectionScreen = () => {
       }),
     ]).start();
   }, []);
+
+  // If a user session already exists, bypass auth entry and go straight to the right dashboard.
+  useEffect(() => {
+    let cancelled = false;
+
+    const unsubscribe = onAuthStateChange((user) => {
+      if (cancelled || hasRedirectedRef.current) return;
+
+      if (!user) {
+        setCheckingSession(false);
+        return;
+      }
+
+      (async () => {
+        try {
+          const profileResult = await fetchCurrentUserProfile();
+          const role =
+            profileResult.success
+              ? (profileResult.profile.role || profileResult.profile.userType)
+              : undefined;
+
+          hasRedirectedRef.current = true;
+          navigation.reset({
+            index: 0,
+            routes: [{ name: role === 'buyer' ? 'BuyerDashboard' : 'Dashboard' }],
+          });
+        } catch {
+          // If anything fails, allow user to proceed manually.
+          setCheckingSession(false);
+        }
+      })();
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [navigation]);
 
   // Change language when selected
   useEffect(() => {
@@ -93,6 +135,14 @@ export const RoleSelectionScreen = () => {
       useNativeDriver: true,
     }).start();
   };
+
+  if (checkingSession) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+        <ActivityIndicator size="large" color="#22C55E" />
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1">

@@ -6,7 +6,8 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
-import { ArrowLeft, MapPin, Phone, User } from 'lucide-react-native';
+import { MapPin, Phone, User } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -131,17 +132,9 @@ export const ViewAllCropsScreen = () => {
       >
         {/* Header */}
         <View className="bg-green-600 px-6 pt-12 pb-6 rounded-b-3xl">
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            className="mb-4"
-          >
-            <View className="flex-row items-center">
-              <ArrowLeft size={24} color="#fff" strokeWidth={2} />
-              <Text className="text-white text-lg font-medium ml-2">
-                {tr('viewAllCrops.back', 'Back')}
-              </Text>
-            </View>
-          </TouchableOpacity>
+          <View className="mb-4">
+            <BackButton />
+          </View>
           <Text className="text-white text-3xl font-bold">
             {tr('viewAllCrops.title', 'All Available Crops')}
           </Text>
