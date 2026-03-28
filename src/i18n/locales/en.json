@@ -1,0 +1,361 @@
+{
+  "signUp": {
+    "title": "Create Account",
+    "accountInfo": "Account Information",
+    "personalInfo": "Personal Information",
+    "farmingInfo": "Farming Information",
+    "fullName": "Full Name",
+    "fullNamePlaceholder": "Ranjit Das",
+    "mobileNumber": "Mobile Number",
+    "mobileNumberPlaceholder": "9876543210",
+    "email": "Email (Optional)",
+    "emailPlaceholder": "your@email.com",
+    "password": "Password",
+    "passwordPlaceholder": "Enter password",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordPlaceholder": "Re-enter password",
+    "state": "State",
+    "statePlaceholder": "Select your state",
+    "district": "District",
+    "districtPlaceholder": "Select or enter district",
+    "preferredLanguage": "Preferred Language",
+    "languagePlaceholder": "Select language",
+    "farmerType": "Farmer Type",
+    "farmerTypePlaceholder": "Select farmer type",
+    "landSize": "Land Size",
+    "landSizePlaceholder": "0",
+    "acres": "acres",
+    "createAccount": "Create Account",
+    "alreadyHaveAccount": "Already have an account?",
+    "signIn": "Sign In",
+    "creating": "Creating Account...",
+    "errors": {
+      "required": "This field is required",
+      "invalidEmail": "Please enter a valid email",
+      "invalidMobile": "Please enter a valid 10-digit mobile number",
+      "passwordMinLength": "Password must be at least 6 characters",
+      "passwordMismatch": "Passwords do not match"
+    },
+    "farmerTypes": {
+      "small": "Small Farmer",
+      "medium": "Medium Farmer",
+      "large": "Large Farmer"
+    },
+    "languages": {
+      "en": "English",
+      "bn": "Bengali",
+      "hi": "Hindi"
+    }
+  },
+  "signIn": {
+    "title": "Welcome Back",
+    "subtitle": "Sign in to continue",
+    "mobileNumber": "Mobile Number",
+    "mobileNumberPlaceholder": "9876543210",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "preferredLanguage": "Language",
+    "languagePlaceholder": "Select language",
+    "forgotPassword": "Forgot Password?",
+    "signInButton": "Sign In",
+    "noAccount": "Don't have an account?",
+    "signUp": "Sign Up",
+    "errors": {
+      "required": "This field is required",
+      "invalidMobile": "Please enter a valid 10-digit mobile number"
+    }
+  },
+  "dashboard": {
+    "greeting": "Hello Farmer!",
+    "subtitle": "Welcome to KrishakSharthi",
+    "predictCrop": "Crop Prediction",
+    "predictSubtitle": "Get yield predictions",
+    "analyzeDocument": "Document Analyzer",
+    "analyzeDocumentSubtitle": "Analyze farming documents",
+    "weather": {
+      "title": "Today's Weather",
+      "temperature": "Temperature",
+      "rain": "Rain",
+      "humidity": "Humidity",
+      "condition": "Condition"
+    },
+    "farmSummary": {
+      "title": "Farm Summary",
+      "crops": "Crops",
+      "area": "Area",
+      "acres": "acres",
+      "status": "Status",
+      "healthy": "Healthy"
+    },
+    "farmingFeed": {
+      "title": "Farming Updates",
+      "update1Title": "Rice Yield Expected to Increase",
+      "update1Description": "West Bengal farmers report positive crop growth this season with improved irrigation facilities.",
+      "update1Region": "West Bengal",
+      "update2Title": "Drought Alert Issued",
+      "update2Description": "Maharashtra regions facing water scarcity. Farmers advised to adopt water conservation methods.",
+      "update2Region": "Maharashtra",
+      "update3Title": "New Organic Farming Initiative",
+      "update3Description": "Punjab government launches support program for organic farming with subsidies and training.",
+      "update3Region": "Punjab",
+      "update4Title": "Wheat Market Price Surge",
+      "update4Description": "Wheat prices increase by 15% due to high demand. Good news for wheat farmers.",
+      "update4Region": "Haryana"
+    },
+    "weatherData": {
+      "partlyCloudy": "Partly Cloudy",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "crops": {
+      "rice": "Rice"
+    }
+  },
+  "drawer": {
+    "title": "Menu",
+    "subtitle": "Navigate to features",
+    "profile": "My Profile",
+    "profileSubtitle": "Manage your account settings",
+    "version": "Version"
+  },
+  "prediction": {
+    "title": "Crop Prediction",
+    "subtitle": "Enter crop details for prediction",
+    "cropInfo": "Crop Information",
+    "timeline": "Timeline",
+    "soilMethod": "Soil & Method",
+    "locationSection": "Location",
+    "additionalDetails": "Additional Information",
+    "cropType": "Crop Type",
+    "cropTypePlaceholder": "Select crop type",
+    "acres": "Land Area (Acres)",
+    "acresPlaceholder": "Enter area",
+    "plantingDate": "Planting Date",
+    "plantingDatePlaceholder": "DD/MM/YYYY",
+    "harvestDate": "Expected Harvest Date",
+    "harvestDatePlaceholder": "DD/MM/YYYY",
+    "soilType": "Soil Type",
+    "soilTypePlaceholder": "Select soil type",
+    "farmingMethod": "Farming Method",
+    "farmingMethodPlaceholder": "Select method",
+    "location": "Location",
+    "locationPlaceholder": "Select location",
+    "additionalInfo": "Additional Information",
+    "additionalInfoPlaceholder": "Any additional details...",
+    "optional": "Optional",
+    "submitButton": "Get Prediction",
+    "submitPrediction": "Get Prediction",
+    "cropTypes": {
+      "rice": "Rice",
+      "wheat": "Wheat",
+      "cotton": "Cotton",
+      "sugarcane": "Sugarcane",
+      "corn": "Corn",
+      "potato": "Potato",
+      "tomato": "Tomato",
+      "onion": "Onion"
+    },
+    "soilTypes": {
+      "alluvial": "Alluvial",
+      "black": "Black",
+      "red": "Red",
+      "laterite": "Laterite",
+      "desert": "Desert",
+      "mountain": "Mountain"
+    },
+    "farmingMethods": {
+      "traditional": "Traditional",
+      "organic": "Organic",
+      "modern": "Modern"
+    },
+    "locations": {
+      "nadia": "Nadia, WB",
+      "mumbai": "Mumbai, MH",
+      "delhi": "Delhi, DL",
+      "bangalore": "Bangalore, KA",
+      "chennai": "Chennai, TN"
+    },
+    "errors": {
+      "required": "This field is required",
+      "invalidAcres": "Please enter a valid area"
+    }
+  },
+  "result": {
+    "title": "Prediction Results",
+    "subtitle": "Based on your inputs",
+    "predictionResults": "Prediction Results",
+    "expectedYield": "Expected Yield",
+    "cropHealth": "Crop Health",
+    "riskLevel": "Risk Level",
+    "waterRequirement": "Water Requirement",
+    "fertilizerSuggestion": "Fertilizer Suggestion",
+    "harvestReadiness": "Harvest Readiness",
+    "recommendationTitle": "Recommendations",
+    "recommendationText": "Based on the analysis, maintain proper irrigation and apply nitrogen-based fertilizer for optimal yield.",
+    "backToDashboard": "Back to Dashboard",
+    "newPrediction": "New Prediction",
+    "infoNote": "These predictions are based on AI analysis and historical data. Actual results may vary.",
+    "values": {
+      "expectedYield": "18–22 Quintals",
+      "cropHealth": "Good",
+      "riskLevel": "Low",
+      "waterRequirement": "Medium",
+      "fertilizerSuggestion": "Nitrogen-based",
+      "harvestReadiness": "On Time"
+    }
+  },
+  "analyzer": {
+    "title": "Document Analyzer",
+    "subtitle": "Analyze farming documents",
+    "uploadDocument": "Upload Document",
+    "uploadLabel": "Tap to Upload Document",
+    "documentSelected": "Document Selected",
+    "uploadHint": "PDF, JPG, PNG, or DOC files",
+    "supportedFormats": "Supported formats",
+    "analyzeButton": "Analyze Document",
+    "analyzing": "Analyzing...",
+    "analyzingHint": "Processing your document. This may take a few moments...",
+    "resultLanguage": "Result Language",
+    "resultLanguagePlaceholder": "Select language",
+    "selectLanguage": "Select language",
+    "summary": "Document Summary",
+    "keyPoints": "Key Points",
+    "actionRequired": "Action Required",
+    "importantAction": "Important Action",
+    "uploadNew": "Upload Another Document",
+    "reupload": "Upload Another Document",
+    "infoNote": "AI-powered analysis to help you understand important farming documents. Results may vary based on document quality.",
+    "results": {
+      "summary": "This document is related to a crop loan agreement from the State Bank of India. It outlines the terms and conditions for agricultural financing.",
+      "keyPoints": [
+        "Loan amount: ₹50,000",
+        "Interest rate: 7% per annum",
+        "Loan tenure: 12 months",
+        "Due date: 15 August 2025",
+        "Collateral: Land documents required"
+      ],
+      "actionRequired": "Visit bank before 15 Aug to complete documentation"
+    }
+  },
+  "disease": {
+    "title": "Disease Detection",
+    "instruction": "Upload a photo of your crop for disease detection",
+    "uploadImage": "Upload Crop Image",
+    "takePhoto": "Take Photo",
+    "choosePhoto": "Choose Photo",
+    "cropAge": "Crop Age (Days)",
+    "cropAgePlaceholder": "Enter age in days",
+    "days": "days",
+    "cropType": "Crop Type",
+    "cropTypePlaceholder": "Select crop type",
+    "recentWeather": "Recent Weather",
+    "recentWeatherPlaceholder": "Select weather",
+    "analyzeButton": "Analyze Image",
+    "analyzing": "Analyzing...",
+    "imageRequired": "Please upload a crop image",
+    "cropTypes": {
+      "rice": "Rice",
+      "wheat": "Wheat",
+      "potato": "Potato"
+    },
+    "weatherConditions": {
+      "rainy": "Rainy",
+      "dry": "Dry",
+      "humid": "Humid"
+    },
+    "permissions": {
+      "title": "Permission Required",
+      "camera": "Camera access is required to take photos",
+      "gallery": "Gallery access is required to select photos"
+    }
+  },
+  "diseaseResult": {
+    "title": "Disease Analysis",
+    "detectedDisease": "Detected Disease",
+    "severity": "Severity",
+    "cropHealth": "Crop Health",
+    "recoveryChance": "Recovery Chance",
+    "treatment": "Treatment",
+    "prevention": "Prevention",
+    "backToDashboard": "Back to Dashboard",
+    "scanAnother": "Scan Another Crop",
+    "severityLevels": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "recoveryChances": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    }
+  },
+  "profile": {
+    "title": "My Profile",
+    "subtitle": "Manage your account",
+    "personalInfo": "Personal Information",
+    "farmingInfo": "Farming Information",
+    "settings": "Settings",
+    "notifications": "Enable Notifications",
+    "saveChanges": "Save Changes",
+    "logout": "Logout",
+    "photoOptions": {
+      "title": "Profile Photo",
+      "message": "Choose an option",
+      "camera": "Take Photo",
+      "gallery": "Choose from Gallery",
+      "cancel": "Cancel"
+    },
+    "permissions": {
+      "title": "Permission Required",
+      "message": "Gallery access is required",
+      "cameraTitle": "Camera Required",
+      "cameraMessage": "Camera access is required"
+    },
+    "success": {
+      "title": "Success",
+      "message": "Profile updated successfully"
+    },
+    "error": {
+      "title": "Error",
+      "message": "Failed to update profile"
+    },
+    "logout": {
+      "confirmTitle": "Logout",
+      "confirmMessage": "Are you sure you want to logout?",
+      "cancel": "Cancel",
+      "confirm": "Logout"
+    }
+  },
+  "chatbot": {
+    "title": "AI Assistant",
+    "subtitle": "Ask me anything about farming",
+    "welcomeMessage": "Hello! How can I help you today?",
+    "inputPlaceholder": "Type your message...",
+    "voiceInput": "How can I improve my crop yield?",
+    "voiceRecorded": "Voice Recorded",
+    "voiceProcessed": "Your voice has been transcribed. You can now send the message.",
+    "recording": "Recording...",
+    "error": "Error",
+    "recordingError": "Failed to process voice recording",
+    "permissions": {
+      "title": "Permission Required",
+      "microphone": "Microphone access is required for voice input."
+    },
+    "responses": {
+      "greeting": "Hello! Welcome to KrishakSharthi. I'm here to assist you with farming queries. How can I help you today?",
+      "crop": "I can help you with crop predictions! Use the Crop Prediction feature from the dashboard to get yield predictions based on your crop details, soil type, and farming methods.",
+      "disease": "For disease detection and treatment recommendations, please use the Disease Detection feature. You can upload a photo of your crop, and our AI will analyze it to detect diseases and suggest treatments.",
+      "weather": "Weather information is available on your dashboard. The weather widget shows current temperature, rainfall, and humidity conditions for your area. Keep checking it for daily updates!",
+      "document": "You can analyze farming documents using the Document Analyzer feature. Upload PDFs, images, or documents, and get AI-powered analysis and summaries in your preferred language.",
+      "fertilizer": "For fertilizer recommendations, use the Crop Prediction feature. It provides detailed fertilizer suggestions based on your crop type, soil conditions, and farming method.",
+      "water": "Water requirements vary by crop type and weather conditions. Use the Crop Prediction feature to get specific water requirement recommendations for your crops.",
+      "harvest": "The Crop Prediction feature can estimate your expected yield and harvest readiness based on various factors like crop age, soil type, and farming practices. Try it from the dashboard!",
+      "price": "Check the farming updates section on your dashboard for the latest market prices and trends. We provide region-specific agricultural news and price information.",
+      "help": "KrishakSharthi offers three main features:\n\n1. 🌾 Crop Prediction - Get yield predictions and recommendations\n2. 🔬 Disease Detection - Identify crop diseases from photos\n3. 📄 Document Analyzer - Analyze farming documents\n\nAccess all features from the dashboard menu!",
+      "thanks": "You're welcome! Feel free to ask if you have any more questions. Happy farming! 🌾",
+      "default": "Thank you for your question! I recommend exploring our features:\n\n🌾 Crop Prediction - For yield estimates\n🔬 Disease Detection - For crop health analysis\n📄 Document Analyzer - For document processing\n\nOr ask me specific questions about farming, crops, diseases, weather, or fertilizers!"
+    }
+  }
+}
+
