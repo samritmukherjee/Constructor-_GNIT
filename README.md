@@ -1,4 +1,4 @@
-# KrishakSarthi Mobile Application
+# KrishakSarthi Mobile Application.
 
 A farmer-friendly mobile application built with React Native, Expo, TypeScript, and NativeWind.
 
