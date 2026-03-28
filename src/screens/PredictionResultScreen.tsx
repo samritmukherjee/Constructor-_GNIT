@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import * as LucideIcons from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -17,67 +17,76 @@ type PredictionResultScreenNavigationProp = NativeStackNavigationProp<
   'PredictionResult'
 >;
 
-// Hardcoded prediction results for UI
-const PREDICTION_RESULTS = [
-  {
-    id: 1,
-    label: 'expectedYield',
-    value: '18–22 Quintals',
-    icon: 'Wheat',
-    bgColor: '#DCFCE7',
-    iconColor: '#16A34A',
-    textColor: '#166534',
-  },
-  {
-    id: 2,
-    label: 'cropHealth',
-    value: 'Good',
-    icon: 'Heart',
-    bgColor: '#FEE2E2',
-    iconColor: '#EF4444',
-    textColor: '#991B1B',
-  },
-  {
-    id: 3,
-    label: 'riskLevel',
-    value: 'Low',
-    icon: 'CheckCircle',
-    bgColor: '#E0E7FF',
-    iconColor: '#6366F1',
-    textColor: '#3730A3',
-  },
-  {
-    id: 4,
-    label: 'waterRequirement',
-    value: 'Medium',
-    icon: 'Droplets',
-    bgColor: '#DBEAFE',
-    iconColor: '#3B82F6',
-    textColor: '#1E40AF',
-  },
-  {
-    id: 5,
-    label: 'fertilizerSuggestion',
-    value: 'Nitrogen-based',
-    icon: 'Flask',
-    bgColor: '#FEF3C7',
-    iconColor: '#F59E0B',
-    textColor: '#92400E',
-  },
-  {
-    id: 6,
-    label: 'harvestReadiness',
-    value: 'On Time',
-    icon: 'Clock',
-    bgColor: '#FBCFE8',
-    iconColor: '#EC4899',
-    textColor: '#9F1239',
-  },
-];
+type PredictionResultScreenRouteProp = RouteProp<
+  RootStackParamList,
+  'PredictionResult'
+>;
 
 export const PredictionResultScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<PredictionResultScreenNavigationProp>();
+  const route = useRoute<PredictionResultScreenRouteProp>();
+
+  // Get prediction data from route params
+  const { predictionData } = route.params;
+
+  // Map prediction data to display format
+  const PREDICTION_RESULTS = [
+    {
+      id: 1,
+      label: 'expectedYield',
+      value: predictionData.expectedYield,
+      icon: 'Wheat',
+      bgColor: '#DCFCE7',
+      iconColor: '#16A34A',
+      textColor: '#166534',
+    },
+    {
+      id: 2,
+      label: 'cropHealth',
+      value: predictionData.cropHealth,
+      icon: 'Heart',
+      bgColor: '#FEE2E2',
+      iconColor: '#EF4444',
+      textColor: '#991B1B',
+    },
+    {
+      id: 3,
+      label: 'riskLevel',
+      value: predictionData.riskLevel,
+      icon: 'CheckCircle',
+      bgColor: '#E0E7FF',
+      iconColor: '#6366F1',
+      textColor: '#3730A3',
+    },
+    {
+      id: 4,
+      label: 'waterRequirement',
+      value: predictionData.waterRequirement,
+      icon: 'Droplets',
+      bgColor: '#DBEAFE',
+      iconColor: '#3B82F6',
+      textColor: '#1E40AF',
+    },
+    {
+      id: 5,
+      label: 'fertilizerSuggestion',
+      value: predictionData.fertilizerSuggestion,
+      icon: 'Flask',
+      bgColor: '#FEF3C7',
+      iconColor: '#F59E0B',
+      textColor: '#92400E',
+    },
+    {
+      id: 6,
+      label: 'harvestReadiness',
+      value: predictionData.harvestReadiness,
+      icon: 'Clock',
+      bgColor: '#FBCFE8',
+      iconColor: '#EC4899',
+      textColor: '#9F1239',
+    },
+  ];
 
   const handleBackToDashboard = () => {
     navigation.navigate('Dashboard');
@@ -120,7 +129,7 @@ export const PredictionResultScreen = () => {
               {PREDICTION_RESULTS.map((result) => {
                 const IconComponent = (LucideIcons as any)[result.icon];
                 if (!IconComponent) return null;
-                
+
                 return (
                   <View
                     key={result.id}
@@ -138,7 +147,7 @@ export const PredictionResultScreen = () => {
                       <IconComponent size={32} color={result.iconColor} strokeWidth={2.5} />
                     </View>
                     <View className="flex-1">
-                      <Text 
+                      <Text
                         className="text-xs font-medium mb-1"
                         style={{ color: result.textColor }}
                       >
@@ -148,7 +157,7 @@ export const PredictionResultScreen = () => {
                         className="text-base font-bold"
                         style={{ color: result.textColor }}
                       >
-                        {t(`result.values.${result.label}`)}
+                        {result.value}
                       </Text>
                     </View>
                   </View>
@@ -168,7 +177,7 @@ export const PredictionResultScreen = () => {
               </Text>
             </View>
             <Text className="text-blue-800 text-base leading-6">
-              {t('result.recommendationText')}
+              {predictionData.recommendations}
             </Text>
           </View>
 

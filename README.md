@@ -1,6 +1,6 @@
 # KrishakSarthi Mobile App
 
-A farmer-friendly multi-lingual mobile application built with React Native, Expo, TypeScript, and NativeWind.
+A farmer-friendly mobile application built with React Native, Expo, TypeScript, and NativeWind.
 
 ## Features
 

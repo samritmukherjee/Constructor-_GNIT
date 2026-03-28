@@ -11,6 +11,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +19,8 @@ import { CustomInput } from '../components/CustomInput';
 import { Dropdown } from '../components/Dropdown';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { localizeNumber, delocalizeNumber } from '../utils/numberLocalization';
+import { detectCropDisease } from '../services/gemini';
+import { getWeatherForCurrentLocation, getWeatherConditionKey } from '../services/weather';
 
 type CropDiseaseDetectionScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -28,17 +31,20 @@ interface FormData {
   cropImage: string | null;
   cropAge: string;
   cropType: string;
+  otherCropType: string;
   recentWeather: string;
 }
 
 export const CropDiseaseDetectionScreen = () => {
   const { t, i18n } = useTranslation();
   const navigation = useNavigation<CropDiseaseDetectionScreenNavigationProp>();
+  const insets = useSafeAreaInsets();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     cropImage: null,
     cropAge: '',
     cropType: '',
+    otherCropType: '',
     recentWeather: '',
   });
 
@@ -46,12 +52,19 @@ export const CropDiseaseDetectionScreen = () => {
     { label: t('disease.cropTypes.rice'), value: 'rice' },
     { label: t('disease.cropTypes.wheat'), value: 'wheat' },
     { label: t('disease.cropTypes.potato'), value: 'potato' },
-  ];
-
-  const WEATHER_CONDITIONS = [
-    { label: t('disease.weatherConditions.rainy'), value: 'rainy' },
-    { label: t('disease.weatherConditions.dry'), value: 'dry' },
-    { label: t('disease.weatherConditions.humid'), value: 'humid' },
+    { label: t('disease.cropTypes.tomato'), value: 'tomato' },
+    { label: t('disease.cropTypes.cotton'), value: 'cotton' },
+    { label: t('disease.cropTypes.sugarcane'), value: 'sugarcane' },
+    { label: t('disease.cropTypes.maize'), value: 'maize' },
+    { label: t('disease.cropTypes.soybean'), value: 'soybean' },
+    { label: t('disease.cropTypes.chili'), value: 'chili' },
+    { label: t('disease.cropTypes.onion'), value: 'onion' },
+    { label: t('disease.cropTypes.banana'), value: 'banana' },
+    { label: t('disease.cropTypes.mango'), value: 'mango' },
+    { label: t('disease.cropTypes.tea'), value: 'tea' },
+    { label: t('disease.cropTypes.coffee'), value: 'coffee' },
+    { label: t('disease.cropTypes.groundnut'), value: 'groundnut' },
+    { label: t('disease.cropTypes.other'), value: 'other' },
   ];
 
   const handleFieldChange = (field: keyof FormData, value: any) => {
@@ -73,7 +86,7 @@ export const CropDiseaseDetectionScreen = () => {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.8,
+      quality: 1.0,
     });
 
     if (!result.canceled && result.assets[0]) {
@@ -96,7 +109,7 @@ export const CropDiseaseDetectionScreen = () => {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.8,
+      quality: 1.0,
     });
 
     if (!result.canceled && result.assets[0]) {
@@ -105,11 +118,8 @@ export const CropDiseaseDetectionScreen = () => {
   };
 
   const canAnalyze = () => {
-    return (
-      formData.cropImage !== null &&
-      formData.cropType !== '' &&
-      formData.recentWeather !== ''
-    );
+    // Only image is required, other fields are optional
+    return formData.cropImage !== null;
   };
 
   const handleAnalyze = async () => {
@@ -120,24 +130,59 @@ export const CropDiseaseDetectionScreen = () => {
 
     setIsAnalyzing(true);
 
-    // Simulate AI analysis with delay
-    setTimeout(() => {
+    try {
+      // Auto-detect weather from user's location
+      const weatherData = await getWeatherForCurrentLocation();
+      const weatherCondition = weatherData 
+        ? getWeatherConditionKey(weatherData.current.weatherCode) 
+        : 'unknown';
+
+      // Determine final crop type (use 'unknown' if not provided)
+      const finalCropType = formData.cropType === 'other' 
+        ? formData.otherCropType 
+        : formData.cropType || 'unknown';
+
+      // Call Gemini API to analyze the crop disease
+      const result = await detectCropDisease({
+        input: {
+          imageUri: formData.cropImage!,
+          cropType: finalCropType,
+          cropAge: formData.cropAge || '',
+          weather: weatherCondition,
+        },
+        language: i18n.language,
+      });
+
       setIsAnalyzing(false);
-      // Navigate to disease result screen (to be created)
+
+      // Navigate to disease result screen with Gemini analysis
       navigation.navigate('DiseaseResult', {
         cropImage: formData.cropImage!,
-        cropType: formData.cropType,
+        cropType: finalCropType,
         cropAge: formData.cropAge,
-        weather: formData.recentWeather,
+        weather: weatherCondition,
+        diseaseResult: result,
       });
-    }, 2500);
+    } catch (error) {
+      setIsAnalyzing(false);
+      console.error('Disease detection error:', error);
+      Alert.alert(
+        t('common.error'),
+        error instanceof Error 
+          ? error.message 
+          : t('disease.analysisFailed')
+      );
+    }
   };
 
   return (
     <View className="flex-1 bg-white">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ padding: 24, paddingBottom: 32 }}
+        contentContainerStyle={{ 
+          padding: 24, 
+          paddingBottom: Math.max(insets.bottom, 24) + 24 
+        }}
       >
         {/* Header */}
         <View className="mb-6">
@@ -229,34 +274,37 @@ export const CropDiseaseDetectionScreen = () => {
         {/* Crop Type Dropdown */}
         <View className="mb-6">
           <Text className="text-base font-semibold text-gray-700 mb-2">
-            {t('disease.cropType')} *
+            {t('disease.cropType')}
           </Text>
           <Dropdown
             value={formData.cropType}
             onSelect={(item) => {
               const value = typeof item === 'string' ? item : item.value;
               handleFieldChange('cropType', value);
+              // Clear other crop type if not selecting 'other'
+              if (value !== 'other') {
+                handleFieldChange('otherCropType', '');
+              }
             }}
             options={CROP_TYPES}
             placeholder={t('disease.cropTypePlaceholder')}
           />
         </View>
 
-        {/* Recent Weather Dropdown */}
-        <View className="mb-6">
-          <Text className="text-base font-semibold text-gray-700 mb-2">
-            {t('disease.recentWeather')} *
-          </Text>
-          <Dropdown
-            value={formData.recentWeather}
-            onSelect={(item) => {
-              const value = typeof item === 'string' ? item : item.value;
-              handleFieldChange('recentWeather', value);
-            }}
-            options={WEATHER_CONDITIONS}
-            placeholder={t('disease.recentWeatherPlaceholder')}
-          />
-        </View>
+        {/* Other Crop Type Input - Only show if 'other' is selected */}
+        {formData.cropType === 'other' && (
+          <View className="mb-6">
+            <Text className="text-base font-semibold text-gray-700 mb-2">
+              {t('disease.otherCropType')}
+            </Text>
+            <CustomInput
+              label=""
+              value={formData.otherCropType}
+              onChangeText={(value) => handleFieldChange('otherCropType', value)}
+              placeholder={t('disease.otherCropTypePlaceholder')}
+            />
+          </View>
+        )}
 
         {/* Analyze Button */}
         <TouchableOpacity

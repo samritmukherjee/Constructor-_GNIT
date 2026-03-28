@@ -1,4 +1,209 @@
 {
+  "roleSelection": {
+    "title": "KrishakSarthi",
+    "subtitle": "Select your role to continue",
+    "language": "Language",
+    "languagePlaceholder": "Select language",
+    "farmer": "Farmer",
+    "farmerDescription": "Access farming tools, predictions, and resources",
+    "buyer": "Buyer",
+    "buyerDescription": "Connect with farmers and purchase agricultural products",
+    "footerNote": "Choose the role that best describes you"
+  },
+  "buyerSignIn": {
+    "title": "Buyer Sign In",
+    "subtitle": "Welcome back, buyer",
+    "mobileNumber": "Mobile Number",
+    "mobileNumberPlaceholder": "9876543210",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "signInButton": "Sign In",
+    "noAccount": "Don't have an account?",
+    "signUpButton": "Sign Up",
+    "back": "Back",
+    "cancel": "Cancel",
+    "errors": {
+      "required": "This field is required",
+      "invalidMobile": "Enter a valid 10-digit mobile number",
+      "noAccount": "No account found. Don't have an account? Sign Up.",
+      "default": "Sign in failed."
+    }
+  },
+  "buyerSignUp": {
+    "title": "Create Buyer Account",
+    "subtitle": "Join as a buyer to connect with farmers",
+    "fullName": "Full Name",
+    "fullNamePlaceholder": "John Doe",
+    "mobileNumber": "Mobile Number",
+    "mobileNumberPlaceholder": "9876543210",
+    "email": "Email (Optional)",
+    "emailPlaceholder": "your@email.com",
+    "password": "Password",
+    "passwordPlaceholder": "Enter password",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordPlaceholder": "Re-enter password",
+    "createAccount": "Create Buyer Account",
+    "alreadyHaveAccount": "Already have an account?",
+    "signInButton": "Sign In",
+    "back": "Back",
+    "success": "Success",
+    "accountCreated": "Your buyer account has been created successfully!",
+    "continue": "Continue",
+    "errors": {
+      "required": "This field is required",
+      "invalidEmail": "Enter a valid email address",
+      "invalidMobile": "Enter a valid 10-digit mobile number",
+      "passwordMinLength": "Password must be at least 6 characters",
+      "passwordMismatch": "Passwords do not match",
+      "default": "Account creation failed. Please try again."
+    }
+  },
+  "buyerDashboard": {
+    "greeting": "Hello Buyer!",
+    "subtitle": "Explore fresh produce from farmers",
+    "language": "Language",
+    "languagePlaceholder": "Select language",
+    "summary": {
+      "title": "Market Summary",
+      "activeSellers": "Active Sellers",
+      "availableCrops": "Available Crops",
+      "availableCropsValue": "Rice, Wheat, Potato",
+      "averagePrice": "Average Price",
+      "perKg": "kg"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "viewAllCrops": "View All Crops",
+      "contactFarmer": "Contact Farmer"
+    },
+    "availableCrops": {
+      "title": "Available Crops",
+      "price": "Price"
+    },
+    "crops": {
+      "rice": "Rice",
+      "wheat": "Wheat",
+      "potato": "Potato",
+      "tomato": "Tomato"
+    },
+    "locations": {
+      "nadia": "Nadia, WB",
+      "punjab": "Punjab",
+      "bihar": "Bihar",
+      "maharashtra": "Maharashtra"
+    },
+    "marketFeed": {
+      "title": "Market Updates",
+      "update1Title": "Rice prices increased in West Bengal",
+      "update1Description": "Market demand for rice has surged by 20% this month.",
+      "update1Region": "West Bengal",
+      "update2Title": "Fresh vegetables available from local farmers",
+      "update2Description": "Seasonal vegetables ready for bulk purchase.",
+      "update2Region": "Punjab",
+      "update3Title": "Organic wheat harvest completed",
+      "update3Description": "Premium quality organic wheat available at competitive prices.",
+      "update3Region": "Haryana"
+    }
+  },
+  "viewAllCrops": {
+    "title": "All Available Crops",
+    "subtitle": "Browse and connect with farmers",
+    "back": "Back",
+    "price": "Price",
+    "perKg": "kg",
+    "available": "Available",
+    "kg": "kg",
+    "farmer": "Farmer",
+    "contact": "Contact",
+    "quality": {
+      "premium": "Premium",
+      "organic": "Organic",
+      "fresh": "Fresh"
+    },
+    "crops": {
+      "rice": "Rice",
+      "wheat": "Wheat",
+      "potato": "Potato",
+      "tomato": "Tomato",
+      "onion": "Onion",
+      "sugarcane": "Sugarcane",
+      "cotton": "Cotton",
+      "corn": "Corn"
+    },
+    "locations": {
+      "nadia": "Nadia, West Bengal",
+      "punjab": "Ludhiana, Punjab",
+      "bihar": "Patna, Bihar",
+      "maharashtra": "Nashik, Maharashtra",
+      "up": "Lucknow, Uttar Pradesh",
+      "gujarat": "Ahmedabad, Gujarat",
+      "karnataka": "Bangalore, Karnataka"
+    },
+    "farmers": {
+      "ramesh": "Ramesh Kumar",
+      "gurpreet": "Gurpreet Singh",
+      "rajesh": "Rajesh Sharma",
+      "suresh": "Suresh Patil",
+      "amit": "Amit Desai",
+      "vijay": "Vijay Yadav",
+      "bharat": "Bharat Patel",
+      "krishna": "Krishna Reddy"
+    }
+  },
+  "contactFarmer": {
+    "title": "Contact Farmer",
+    "subtitle": "Get in touch with our support team",
+    "back": "Back",
+    "call": "Call",
+    "sms": "Send SMS",
+    "email": "Email",
+    "error": "Error",
+    "phoneError": "Unable to make phone call",
+    "smsError": "Unable to send SMS",
+    "emailError": "Unable to send email",
+    "supportTeam": "Support Team",
+    "infoTitle": "How to Connect",
+    "infoText": "Contact our support team to get connected with farmers. We help facilitate direct communication between buyers and farmers.",
+    "support": {
+      "name1": "Farmer Support Center",
+      "address1": "Kolkata, West Bengal",
+      "desc1": "Main support center for buyer-farmer connections",
+      "name2": "Regional Helpline",
+      "address2": "Delhi, NCR",
+      "desc2": "Regional support for North India",
+      "name3": "Customer Care",
+      "address3": "Mumbai, Maharashtra",
+      "desc3": "24/7 customer care for immediate assistance"
+    }
+  },
+  "contactBuyer": {
+    "title": "Contact Buyer",
+    "subtitle": "Connect with interested buyers",
+    "back": "Back",
+    "call": "Call",
+    "sms": "Send SMS",
+    "email": "Email",
+    "error": "Error",
+    "phoneError": "Unable to make phone call",
+    "smsError": "Unable to send SMS",
+    "emailError": "Unable to send email",
+    "loading": "Loading buyer contacts...",
+    "noBuyers": "No buyer contacts available",
+    "interestedBuyers": "Interested Buyers",
+    "infoTitle": "New Buyer Requests",
+    "infoText": "You have buyer inquiries! Connect with buyers looking for your crops. Orange notification badges show active requests.",
+    "buyers": {
+      "name1": "Wholesale Market Delhi",
+      "address1": "Azadpur Mandi, Delhi",
+      "desc1": "Large wholesale buyer for grains and vegetables",
+      "name2": "Organic Foods Mumbai",
+      "address2": "Vashi Market, Mumbai",
+      "desc2": "Organic produce buyer with premium rates",
+      "name3": "Fresh Mart Kolkata",
+      "address3": "Kolkata, West Bengal",
+      "desc3": "Regular buyer for fresh vegetables and fruits"
+    }
+  },
   "signUp": {
     "title": "Create Account",
     "accountInfo": "Account Information",
@@ -77,7 +282,26 @@
       "temperature": "Temperature",
       "rain": "Rain",
       "humidity": "Humidity",
-      "condition": "Condition"
+      "condition": "Condition",
+      "precipitation": "Precipitation",
+      "hourlyForecast": "Hourly Forecast",
+      "loading": "Loading weather...",
+      "error": "Unable to load weather",
+      "locationError": "Location access denied",
+      "retry": "Retry",
+      "conditions": {
+        "clear": "Clear Sky",
+        "partlyCloudy": "Partly Cloudy",
+        "cloudy": "Cloudy",
+        "foggy": "Foggy",
+        "drizzle": "Drizzle",
+        "rainy": "Rainy",
+        "heavyRain": "Heavy Rain",
+        "snowy": "Snowy",
+        "showers": "Showers",
+        "snowShowers": "Snow Showers",
+        "thunderstorm": "Thunderstorm"
+      }
     },
     "farmSummary": {
       "title": "Farm Summary",
@@ -116,6 +340,8 @@
     "subtitle": "Navigate to features",
     "profile": "My Profile",
     "profileSubtitle": "Manage your account settings",
+    "contactBuyer": "Contact Buyer",
+    "contactBuyerSubtitle": "Connect with interested buyers",
     "version": "Version"
   },
   "prediction": {
@@ -153,7 +379,15 @@
       "corn": "Corn",
       "potato": "Potato",
       "tomato": "Tomato",
-      "onion": "Onion"
+      "onion": "Onion",
+      "maize": "Maize",
+      "soybean": "Soybean",
+      "chili": "Chili",
+      "banana": "Banana",
+      "mango": "Mango",
+      "tea": "Tea",
+      "coffee": "Coffee",
+      "groundnut": "Groundnut"
     },
     "soilTypes": {
       "alluvial": "Alluvial",
@@ -220,6 +454,9 @@
     "selectLanguage": "Select language",
     "summary": "Document Summary",
     "keyPoints": "Key Points",
+    "reanalyze": "Re-analyze",
+    "listen": "Listen",
+    "stop": "Stop",
     "actionRequired": "Action Required",
     "importantAction": "Important Action",
     "uploadNew": "Upload Another Document",
@@ -253,10 +490,25 @@
     "analyzeButton": "Analyze Image",
     "analyzing": "Analyzing...",
     "imageRequired": "Please upload a crop image",
+    "otherCropType": "Specify Crop Type",
+    "otherCropTypePlaceholder": "Enter crop name",
     "cropTypes": {
       "rice": "Rice",
       "wheat": "Wheat",
-      "potato": "Potato"
+      "potato": "Potato",
+      "tomato": "Tomato",
+      "cotton": "Cotton",
+      "sugarcane": "Sugarcane",
+      "maize": "Maize",
+      "soybean": "Soybean",
+      "chili": "Chili",
+      "onion": "Onion",
+      "banana": "Banana",
+      "mango": "Mango",
+      "tea": "Tea",
+      "coffee": "Coffee",
+      "groundnut": "Groundnut",
+      "other": "Other"
     },
     "weatherConditions": {
       "rainy": "Rainy",
@@ -288,7 +540,10 @@
       "low": "Low",
       "medium": "Medium",
       "high": "High"
-    }
+    },
+    "warning": "Warning",
+    "notCropWarning": "This image does not appear to be a crop or plant. Please upload an image of a crop for disease analysis.",
+    "uploadNewImage": "Upload New Image"
   },
   "profile": {
     "title": "My Profile",
@@ -320,7 +575,7 @@
       "title": "Error",
       "message": "Failed to update profile"
     },
-    "logout": {
+    "logoutConfirm": {
       "confirmTitle": "Logout",
       "confirmMessage": "Are you sure you want to logout?",
       "cancel": "Cancel",

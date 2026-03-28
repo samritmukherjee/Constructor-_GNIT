@@ -7,7 +7,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -16,6 +18,12 @@ import { Dropdown } from '../components/Dropdown';
 import { INDIAN_STATES, FARMER_TYPES, LANGUAGES } from '../constants/data';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { localizeNumber, delocalizeNumber } from '../utils/numberLocalization';
+import {
+  signUp,
+  signInWithGoogle,
+  saveCurrentUserProfile,
+  updateCurrentAuthProfile,
+} from '../services/auth';
 
 type SignUpScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -42,7 +50,9 @@ interface FormErrors {
 export const SignUpScreen = () => {
   const { t, i18n } = useTranslation();
   const navigation = useNavigation<SignUpScreenNavigationProp>();
+  const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
     mobileNumber: '',
@@ -57,38 +67,47 @@ export const SignUpScreen = () => {
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
+  const tr = (key: string, fallback: string) => {
+    try {
+      return i18n.exists(key) ? (t(key) as string) : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
   const validateField = (name: keyof FormData, value: string): string => {
     switch (name) {
       case 'fullName':
-        return !value.trim() ? t('signUp.errors.required') : '';
+        return !value.trim() ? tr('signUp.errors.required', 'Required') : '';
       case 'mobileNumber':
         return !value.trim()
-          ? t('signUp.errors.required')
+          ? tr('signUp.errors.required', 'Required')
           : !/^\d{10}$/.test(value)
-          ? t('signUp.errors.invalidMobile')
-          : '';
+            ? tr('signUp.errors.invalidMobile', 'Enter a valid 10-digit mobile number')
+            : '';
       case 'email':
-        return value.trim() &&
-          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-          ? t('signUp.errors.invalidEmail')
-          : '';
+        return !value.trim()
+          ? tr('signUp.errors.required', 'Required')
+          : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+            ? tr('signUp.errors.invalidEmail', 'Enter a valid email address')
+            : '';
       case 'password':
         return !value
-          ? t('signUp.errors.required')
+          ? tr('signUp.errors.required', 'Required')
           : value.length < 6
-          ? t('signUp.errors.passwordMinLength')
-          : '';
+            ? tr('signUp.errors.passwordMinLength', 'Password must be at least 6 characters')
+            : '';
       case 'confirmPassword':
         return !value
-          ? t('signUp.errors.required')
+          ? tr('signUp.errors.required', 'Required')
           : value !== formData.password
-          ? t('signUp.errors.passwordMismatch')
-          : '';
+            ? tr('signUp.errors.passwordMismatch', 'Passwords do not match')
+            : '';
       case 'state':
       case 'preferredLanguage':
       case 'farmerType':
       case 'landSize':
-        return !value.trim() ? t('signUp.errors.required') : '';
+        return !value.trim() ? tr('signUp.errors.required', 'Required') : '';
       default:
         return '';
     }
@@ -114,6 +133,7 @@ export const SignUpScreen = () => {
     const requiredFields: (keyof FormData)[] = [
       'fullName',
       'mobileNumber',
+      'email',
       'password',
       'confirmPassword',
       'state',
@@ -127,12 +147,6 @@ export const SignUpScreen = () => {
       if (error) newErrors[field] = error;
     });
 
-    // Validate optional email if provided
-    if (formData.email) {
-      const emailError = validateField('email', formData.email);
-      if (emailError) newErrors.email = emailError;
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -142,14 +156,66 @@ export const SignUpScreen = () => {
 
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      console.log('Form submitted:', formData);
-      // Handle successful signup (e.g., navigate to home screen)
+      const result = await signUp(formData.email, formData.password);
+      if (!result.success) {
+        Alert.alert(tr('signUp.title', 'Sign Up'), result.message);
+        return;
+      }
+
+      // Store display name in Firebase Auth
+      if (formData.fullName?.trim()) {
+        await updateCurrentAuthProfile({ displayName: formData.fullName.trim() });
+      }
+
+      // Save profile to Firestore
+      await saveCurrentUserProfile({
+        fullName: formData.fullName,
+        mobileNumber: formData.mobileNumber,
+        email: formData.email,
+        state: formData.state,
+        district: formData.district,
+        preferredLanguage: formData.preferredLanguage,
+        farmerType: formData.farmerType,
+        landSize: formData.landSize,
+        notificationsEnabled: true,
+        profilePhoto: null,
+      });
+
+      navigation.navigate('Dashboard');
     } catch (error) {
       console.error('Signup error:', error);
+      Alert.alert(tr('signUp.title', 'Sign Up'), tr('signUp.errors.default', 'Sign up failed.'));
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignUp = async () => {
+    if (googleBusy || isLoading) return;
+
+    // This project intentionally supports Google sign-up only on web.
+    // Native Google sign-in requires OAuth client IDs (Android/iOS) which we are not using.
+    if (Platform.OS !== 'web') {
+      Alert.alert(
+        tr('signUp.title', 'Sign Up'),
+        tr('signUp.googleNativeNotSupported', 'Google sign-up is available on web only. Please sign up with email/password on mobile.')
+      );
+      return;
+    }
+
+    setGoogleBusy(true);
+    try {
+      const result = await signInWithGoogle();
+      if (!result.success) {
+        Alert.alert(tr('signUp.title', 'Sign Up'), result.message);
+        return;
+      }
+      navigation.navigate('Dashboard');
+    } catch (error) {
+      console.error('Google sign-up error:', error);
+      Alert.alert(tr('signUp.title', 'Sign Up'), tr('signUp.googleError', 'Google sign-up failed.'));
+    } finally {
+      setGoogleBusy(false);
     }
   };
 
@@ -157,6 +223,7 @@ export const SignUpScreen = () => {
     const requiredFields = [
       'fullName',
       'mobileNumber',
+      'email',
       'password',
       'confirmPassword',
       'state',
@@ -188,38 +255,59 @@ export const SignUpScreen = () => {
     >
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ padding: 24, paddingBottom: 32 }}
+        contentContainerStyle={{ padding: 24, paddingBottom: Math.max(insets.bottom, 24) + 24 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View className="mb-8 mt-4">
           <Text className="text-3xl font-bold text-gray-900 mb-2">
-            {t('signUp.title')}
+            {tr('signUp.title', 'Sign Up')}
           </Text>
         </View>
 
         {/* Preferred Language Section - Moved to Top */}
         <View className="mb-6">
           <Dropdown
-            label={t('signUp.preferredLanguage')}
-            placeholder={t('signUp.languagePlaceholder')}
+            label={tr('signUp.preferredLanguage', 'Preferred Language')}
+            placeholder={tr('signUp.languagePlaceholder', 'Select language')}
             value={
               LANGUAGES.find((l) => l.value === formData.preferredLanguage)
-                ? t(
-                    LANGUAGES.find(
-                      (l) => l.value === formData.preferredLanguage
-                    )!.labelKey
-                  )
+                ? (() => {
+                    try {
+                      const lang = LANGUAGES.find(
+                        (l) => l.value === formData.preferredLanguage
+                      );
+                      return lang ? t(lang.labelKey) : '';
+                    } catch {
+                      return '';
+                    }
+                  })()
                 : ''
             }
-            options={LANGUAGES.map((lang) => t(lang.labelKey))}
+            options={LANGUAGES.map((lang) => {
+              try {
+                return t(lang.labelKey);
+              } catch {
+                return lang.value.toUpperCase();
+              }
+            })}
             onSelect={(value) => {
-              const selectedLang = LANGUAGES.find(
-                (lang) => t(lang.labelKey) === value
-              );
-              if (selectedLang) {
-                handleFieldChange('preferredLanguage', selectedLang.value);
+              try {
+                const selectedLang = LANGUAGES.find(
+                  (lang) => {
+                    try {
+                      return t(lang.labelKey) === value;
+                    } catch {
+                      return lang.value.toUpperCase() === value;
+                    }
+                  }
+                );
+                if (selectedLang) {
+                  handleFieldChange('preferredLanguage', selectedLang.value);
+                }
+              } catch (error) {
+                console.error('Language selection error:', error);
               }
             }}
             error={errors.preferredLanguage}
@@ -229,20 +317,20 @@ export const SignUpScreen = () => {
         {/* Account Information Section */}
         <View className="mb-6">
           <Text className="text-xl font-semibold text-gray-800 mb-4">
-            {t('signUp.accountInfo')}
+            {tr('signUp.accountInfo', 'Account Information')}
           </Text>
 
           <CustomInput
-            label={t('signUp.fullName')}
-            placeholder={t('signUp.fullNamePlaceholder')}
+            label={tr('signUp.fullName', 'Full Name')}
+            placeholder={tr('signUp.fullNamePlaceholder', 'Enter your full name')}
             value={formData.fullName}
             onChangeText={(value) => handleFieldChange('fullName', value)}
             error={errors.fullName}
           />
 
           <CustomInput
-            label={t('signUp.mobileNumber')}
-            placeholder={localizeNumber(t('signUp.mobileNumberPlaceholder'), i18n.language)}
+            label={tr('signUp.mobileNumber', 'Mobile Number')}
+            placeholder={localizeNumber(tr('signUp.mobileNumberPlaceholder', 'Enter 10-digit mobile number'), i18n.language)}
             value={localizeNumber(formData.mobileNumber, i18n.language)}
             onChangeText={(value) => {
               const delocalized = delocalizeNumber(value, i18n.language);
@@ -254,8 +342,8 @@ export const SignUpScreen = () => {
           />
 
           <CustomInput
-            label={t('signUp.email')}
-            placeholder={t('signUp.emailPlaceholder')}
+            label={tr('signUp.email', 'Email')}
+            placeholder={tr('signUp.emailPlaceholder', 'Enter your email')}
             value={formData.email}
             onChangeText={(value) => handleFieldChange('email', value)}
             keyboardType="email-address"
@@ -264,16 +352,16 @@ export const SignUpScreen = () => {
           />
 
           <PasswordInput
-            label={t('signUp.password')}
-            placeholder={t('signUp.passwordPlaceholder')}
+            label={tr('signUp.password', 'Password')}
+            placeholder={tr('signUp.passwordPlaceholder', 'Enter password (min 6 characters)')}
             value={formData.password}
             onChangeText={(value) => handleFieldChange('password', value)}
             error={errors.password}
           />
 
           <PasswordInput
-            label={t('signUp.confirmPassword')}
-            placeholder={t('signUp.confirmPasswordPlaceholder')}
+            label={tr('signUp.confirmPassword', 'Confirm Password')}
+            placeholder={tr('signUp.confirmPasswordPlaceholder', 'Re-enter your password')}
             value={formData.confirmPassword}
             onChangeText={(value) =>
               handleFieldChange('confirmPassword', value)
@@ -285,21 +373,26 @@ export const SignUpScreen = () => {
         {/* Personal Information Section */}
         <View className="mb-6">
           <Text className="text-xl font-semibold text-gray-800 mb-4">
-            {t('signUp.personalInfo')}
+            {tr('signUp.personalInfo', 'Personal Information')}
           </Text>
 
           <Dropdown
-            label={t('signUp.state')}
-            placeholder={t('signUp.statePlaceholder')}
+            label={tr('signUp.state', 'State')}
+            placeholder={tr('signUp.statePlaceholder', 'Select your state')}
             value={formData.state}
             options={INDIAN_STATES}
-            onSelect={(value) => handleFieldChange('state', value)}
+            onSelect={(value) =>
+              handleFieldChange(
+                'state',
+                typeof value === 'string' ? value : value.value
+              )
+            }
             error={errors.state}
           />
 
           <CustomInput
-            label={t('signUp.district')}
-            placeholder={t('signUp.districtPlaceholder')}
+            label={tr('signUp.district', 'District')}
+            placeholder={tr('signUp.districtPlaceholder', 'Enter your district')}
             value={formData.district}
             onChangeText={(value) => handleFieldChange('district', value)}
             editable={!!formData.state}
@@ -309,39 +402,59 @@ export const SignUpScreen = () => {
         {/* Farming Information Section */}
         <View className="mb-8">
           <Text className="text-xl font-semibold text-gray-800 mb-4">
-            {t('signUp.farmingInfo')}
+            {tr('signUp.farmingInfo', 'Farming Information')}
           </Text>
 
           <Dropdown
-            label={t('signUp.farmerType')}
-            placeholder={t('signUp.farmerTypePlaceholder')}
+            label={tr('signUp.farmerType', 'Farmer Type')}
+            placeholder={tr('signUp.farmerTypePlaceholder', 'Select farmer type')}
             value={
               FARMER_TYPES.find((f) => f.value === formData.farmerType)
-                ? t(
-                    FARMER_TYPES.find((f) => f.value === formData.farmerType)!
-                      .labelKey
-                  )
+                ? (() => {
+                    try {
+                      const type = FARMER_TYPES.find((f) => f.value === formData.farmerType);
+                      return type ? t(type.labelKey) : '';
+                    } catch {
+                      return '';
+                    }
+                  })()
                 : ''
             }
-            options={FARMER_TYPES.map((type) => t(type.labelKey))}
+            options={FARMER_TYPES.map((type) => {
+              try {
+                return t(type.labelKey);
+              } catch {
+                return type.value;
+              }
+            })}
             onSelect={(value) => {
-              const selectedType = FARMER_TYPES.find(
-                (type) => t(type.labelKey) === value
-              );
-              if (selectedType) {
-                handleFieldChange('farmerType', selectedType.value);
+              try {
+                const selectedType = FARMER_TYPES.find(
+                  (type) => {
+                    try {
+                      return t(type.labelKey) === value;
+                    } catch {
+                      return type.value === value;
+                    }
+                  }
+                );
+                if (selectedType) {
+                  handleFieldChange('farmerType', selectedType.value);
+                }
+              } catch (error) {
+                console.error('Farmer type selection error:', error);
               }
             }}
             error={errors.farmerType}
           />
 
           <CustomInput
-            label={t('signUp.landSize')}
-            placeholder={t('signUp.landSizePlaceholder')}
+            label={tr('signUp.landSize', 'Land Size')}
+            placeholder={tr('signUp.landSizePlaceholder', 'Enter land size')}
             value={formData.landSize}
             onChangeText={(value) => handleFieldChange('landSize', value)}
             keyboardType="decimal-pad"
-            suffix={t('signUp.acres')}
+            suffix={tr('signUp.acres', 'acres')}
             error={errors.landSize}
           />
         </View>
@@ -350,27 +463,45 @@ export const SignUpScreen = () => {
         <TouchableOpacity
           onPress={handleSubmit}
           disabled={!isFormValid() || isLoading}
-          className={`rounded-xl py-4 mb-4 ${
-            !isFormValid() || isLoading ? 'bg-gray-300' : 'bg-primary'
-          }`}
+          className={`rounded-xl py-4 mb-4 ${!isFormValid() || isLoading ? 'bg-gray-300' : 'bg-primary'
+            }`}
         >
           {isLoading ? (
             <ActivityIndicator color="white" />
           ) : (
             <Text className="text-white text-center text-lg font-semibold">
-              {isLoading ? t('signUp.creating') : t('signUp.createAccount')}
+              {isLoading ? tr('signUp.creating', 'Creating...') : tr('signUp.createAccount', 'Create Account')}
             </Text>
           )}
         </TouchableOpacity>
 
+        {/* Google Sign Up (web only) */}
+        {Platform.OS === 'web' ? (
+          <TouchableOpacity
+            onPress={handleGoogleSignUp}
+            disabled={googleBusy || isLoading}
+            className={`rounded-xl py-4 mb-6 border ${googleBusy || isLoading
+                ? 'border-gray-300 bg-gray-50'
+                : 'border-gray-300 bg-white'
+              }`}
+          >
+            <Text
+              className={`text-center text-lg font-semibold ${googleBusy || isLoading ? 'text-gray-400' : 'text-gray-900'
+                }`}
+            >
+              {tr('signUp.googleButton', 'Sign up with Google')}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+
         {/* Sign In Link */}
         <View className="flex-row justify-center items-center flex-wrap">
           <Text className="text-gray-600 text-base text-center">
-            {t('signUp.alreadyHaveAccount')}{' '}
+            {tr('signUp.alreadyHaveAccount', 'Already have an account?')}{' '}
           </Text>
           <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
             <Text className="text-primary font-semibold text-base">
-              {t('signUp.signIn')}
+              {tr('signUp.signIn', 'Sign In')}
             </Text>
           </TouchableOpacity>
         </View>

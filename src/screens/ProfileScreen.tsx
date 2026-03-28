@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -20,7 +21,14 @@ import { Dropdown } from '../components/Dropdown';
 import { INDIAN_STATES, FARMER_TYPES, LANGUAGES } from '../constants/data';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { saveLanguage } from '../i18n/i18n';
-import { localizeNumber, delocalizeNumber } from '../utils/numberLocalization';
+import { localizeNumber } from '../utils/numberLocalization';
+import {
+  fetchCurrentUserProfile,
+  logout,
+  onAuthStateChange,
+  saveCurrentUserProfile,
+  updateCurrentAuthProfile,
+} from '../services/auth';
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -43,30 +51,81 @@ interface ProfileData {
 export const ProfileScreen = () => {
   const { t, i18n } = useTranslation();
   const navigation = useNavigation<ProfileScreenNavigationProp>();
+  const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
 
-  // Initial profile data (would come from API/storage in real app)
-  const [initialData] = useState<ProfileData>({
-    fullName: 'Your name',
-    mobileNumber: '9876543210',
-    email: 'your.email@example.com',
-    state: 'West Bengal',
-    district: 'North 24 Parganas',
+  const [initialData, setInitialData] = useState<ProfileData>({
+    fullName: '',
+    mobileNumber: '',
+    email: '',
+    state: '',
+    district: '',
     preferredLanguage: i18n.language,
-    farmerType: 'medium',
-    landSize: '5',
+    farmerType: '',
+    landSize: '',
     notificationsEnabled: true,
     profilePhoto: null,
   });
 
   const [profileData, setProfileData] = useState<ProfileData>(initialData);
 
+  const tr = (key: string, fallback: string) => {
+    try {
+      return i18n.exists(key) ? (t(key) as string) : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
   // Check if there are any changes
   useEffect(() => {
     const changed = JSON.stringify(profileData) !== JSON.stringify(initialData);
     setHasChanges(changed);
   }, [profileData, initialData]);
+
+  // Load profile from Firebase Auth + Firestore
+  useEffect(() => {
+    const unsubscribe = onAuthStateChange(async (user) => {
+      if (!user) {
+        navigation.navigate('SignIn');
+        return;
+      }
+
+      setIsProfileLoading(true);
+      try {
+        const profileResult = await fetchCurrentUserProfile();
+        const stored = profileResult.success ? profileResult.profile : {};
+
+        const next: ProfileData = {
+          fullName: (stored.fullName as string) || user.displayName || '',
+          mobileNumber: (stored.mobileNumber as string) || '',
+          email: (stored.email as string) || user.email || '',
+          state: (stored.state as string) || '',
+          district: (stored.district as string) || '',
+          preferredLanguage: (stored.preferredLanguage as string) || i18n.language,
+          farmerType: (stored.farmerType as string) || '',
+          landSize: (stored.landSize as string) || '',
+          notificationsEnabled:
+            typeof stored.notificationsEnabled === 'boolean'
+              ? stored.notificationsEnabled
+              : true,
+          profilePhoto:
+            (stored.profilePhoto as string) || user.photoURL || null,
+        };
+
+        setInitialData(next);
+        setProfileData(next);
+      } catch (e) {
+        console.error('Profile load error:', e);
+      } finally {
+        setIsProfileLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Change language when preferred language changes
   useEffect(() => {
@@ -85,8 +144,8 @@ export const ProfileScreen = () => {
     
     if (permissionResult.granted === false) {
       Alert.alert(
-        t('profilepermissionstitle'),
-        t('profilepermissionsmessage')
+        tr('profile.permissions.title', 'Permissions Required'),
+        tr('profile.permissions.message', 'Please grant access to your photo library to change your profile picture.')
       );
       return;
     }
@@ -108,8 +167,8 @@ export const ProfileScreen = () => {
     
     if (permissionResult.granted === false) {
       Alert.alert(
-        t('profilepermissionscameraTitle'),
-        t('profilepermissionscameraMessage')
+        tr('profile.permissions.cameraTitle', 'Camera Permission Required'),
+        tr('profile.permissions.cameraMessage', 'Please grant camera access to take a photo.')
       );
       return;
     }
@@ -127,12 +186,12 @@ export const ProfileScreen = () => {
 
   const showImageOptions = () => {
     Alert.alert(
-      t('profilephotoOptionstitle'),
-      t('profilephotoOptionsmessage'),
+      tr('profile.photoOptions.title', 'Change Profile Photo'),
+      tr('profile.photoOptions.message', 'Choose an option'),
       [
-        { text: t('profilephotoOptionscamera'), onPress: takePhoto },
-        { text: t('profilephotoOptionsgallery'), onPress: pickImage },
-        { text: t('profilephotoOptionscancel'), style: 'cancel' },
+        { text: tr('profile.photoOptions.camera', 'Take Photo'), onPress: takePhoto },
+        { text: tr('profile.photoOptions.gallery', 'Choose from Library'), onPress: pickImage },
+        { text: tr('profile.photoOptions.cancel', 'Cancel'), style: 'cancel' },
       ]
     );
   };
@@ -140,14 +199,33 @@ export const ProfileScreen = () => {
   const handleSaveChanges = async () => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise<void>((resolve) => setTimeout(resolve, 2000));
-      console.log('Profile updated:', profileData);
-      Alert.alert(t('profilesuccesstitle'), t('profilesuccessmessage'));
-      setHasChanges(false);
+      // Persist to Firestore
+      await saveCurrentUserProfile({
+        fullName: profileData.fullName,
+        mobileNumber: profileData.mobileNumber,
+        email: profileData.email,
+        state: profileData.state,
+        district: profileData.district,
+        preferredLanguage: profileData.preferredLanguage,
+        farmerType: profileData.farmerType,
+        landSize: profileData.landSize,
+        notificationsEnabled: profileData.notificationsEnabled,
+        profilePhoto: profileData.profilePhoto,
+      });
+
+      // Keep Auth displayName in sync (useful for Google + email users)
+      if (profileData.fullName?.trim()) {
+        await updateCurrentAuthProfile({
+          displayName: profileData.fullName.trim(),
+          photoURL: profileData.profilePhoto ?? undefined,
+        });
+      }
+
+      setInitialData(profileData);
+      Alert.alert(tr('profile.success.title', 'Success'), tr('profile.success.message', 'Profile updated successfully!'));
     } catch (error) {
       console.error('Update error:', error);
-      Alert.alert(t('profileerrortitle'), t('profileerrormessage'));
+      Alert.alert(tr('profile.error.title', 'Error'), tr('profile.error.message', 'Failed to update profile. Please try again.'));
     } finally {
       setIsLoading(false);
     }
@@ -155,15 +233,19 @@ export const ProfileScreen = () => {
 
   const handleLogout = () => {
     Alert.alert(
-      t('profilelogoutconfirmTitle'),
-      t('profilelogoutconfirmMessage'),
+      tr('profile.logoutConfirm.title', 'Confirm Logout'),
+      tr('profile.logoutConfirm.message', 'Are you sure you want to logout?'),
       [
-        { text: t('profilelogoutcancel'), style: 'cancel' },
+        { text: tr('profile.logout.cancel', 'Cancel'), style: 'cancel' },
         {
-          text: t('profilelogoutconfirm'),
+          text: tr('profile.logout.confirm', 'Logout'),
           style: 'destructive',
-          onPress: () => {
-            // Navigate back to sign in
+          onPress: async () => {
+            const result = await logout();
+            if (!result.success) {
+              Alert.alert(tr('profile.error.title', 'Error'), result.message);
+              return;
+            }
             navigation.navigate('SignIn');
           },
         },
@@ -174,20 +256,26 @@ export const ProfileScreen = () => {
   return (
     <ScrollView
       className="flex-1 bg-white"
-      contentContainerStyle={{ paddingBottom: 32 }}
+      contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) + 24 }}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
       <View className="bg-primary pt-12 pb-8 px-6">
         <Text className="text-3xl font-bold text-white mb-1">
-          {t('profile.title')}
+          {tr('profile.title', 'Profile')}
         </Text>
         <Text className="text-white/80 text-base">
-          {t('profile.subtitle')}
+          {tr('profile.subtitle', 'Manage your account')}
         </Text>
       </View>
 
       <View className="px-6">
+        {isProfileLoading ? (
+          <View className="py-10 items-center">
+            <ActivityIndicator />
+          </View>
+        ) : null}
+
         {/* Profile Picture */}
         <View className="items-center -mt-16 mb-8">
           <TouchableOpacity
@@ -210,34 +298,34 @@ export const ProfileScreen = () => {
             </View>
           </TouchableOpacity>
           <Text className="text-gray-500 text-sm mt-2">
-            {t('Tap To Change')}
+            {tr('profile.tapToChange', 'Tap to change')}
           </Text>
         </View>
 
         {/* Basic Information Section */}
         <View className="mb-6">
           <Text className="text-xl font-semibold text-gray-800 mb-4">
-            {t('Profile basic Info')}
+            {tr('profile.basicInfo', 'Basic Information')}
           </Text>
 
           <CustomInput
-            label={t('Full Name')}
-            placeholder={t('FullNamePlaceholder')}
+            label={tr('profile.fullName', 'Full Name')}
+            placeholder={tr('profile.fullNamePlaceholder', 'Enter your full name')}
             value={profileData.fullName}
             onChangeText={(value) => handleFieldChange('fullName', value)}
           />
 
           <CustomInput
-            label={t('Mobile Number')}
-            placeholder={localizeNumber(t('MobileNumberPlaceholder'), i18n.language)}
+            label={tr('profile.mobileNumber', 'Mobile Number')}
+            placeholder={localizeNumber(tr('profile.mobileNumberPlaceholder', 'Enter mobile number'), i18n.language)}
             value={localizeNumber(profileData.mobileNumber, i18n.language)}
             editable={false}
             style={{ backgroundColor: '#F3F4F6' }}
           />
 
           <CustomInput
-            label={t('Email')}
-            placeholder={t('EmailPlaceholder')}
+            label={tr('profile.email', 'Email')}
+            placeholder={tr('profile.emailPlaceholder', 'Enter your email')}
             value={profileData.email}
             onChangeText={(value) => handleFieldChange('email', value)}
             keyboardType="email-address"
@@ -248,20 +336,20 @@ export const ProfileScreen = () => {
         {/* Location Information Section */}
         <View className="mb-6">
           <Text className="text-xl font-semibold text-gray-800 mb-4">
-            {t('Location Info')}
+            {tr('profile.locationInfo', 'Location Information')}
           </Text>
 
           <Dropdown
-            label={t('State')}
-            placeholder={t('StatePlaceholder')}
+            label={tr('profile.state', 'State')}
+            placeholder={tr('profile.statePlaceholder', 'Select your state')}
             value={profileData.state}
             options={INDIAN_STATES}
             onSelect={(value) => handleFieldChange('state', value)}
           />
 
           <CustomInput
-            label={t('District')}
-            placeholder={t('DistrictPlaceholder')}
+            label={tr('profile.district', 'District')}
+            placeholder={tr('profile.districtPlaceholder', 'Enter your district')}
             value={profileData.district}
             onChangeText={(value) => handleFieldChange('district', value)}
           />
@@ -270,12 +358,12 @@ export const ProfileScreen = () => {
         {/* Language Preference Section */}
         <View className="mb-6">
           <Text className="text-xl font-semibold text-gray-800 mb-4">
-            {t('Language Preference')}
+            {tr('profile.languagePreference', 'Language Preference')}
           </Text>
 
           <Dropdown
-            label={t('Preferred Language')}
-            placeholder={t('LanguagePlaceholder')}
+            label={tr('profile.preferredLanguage', 'Preferred Language')}
+            placeholder={tr('profile.languagePlaceholder', 'Select language')}
             value={
               LANGUAGES.find((l) => l.value === profileData.preferredLanguage)
                 ? t(
@@ -300,12 +388,12 @@ export const ProfileScreen = () => {
         {/* Farming Information Section */}
         <View className="mb-6">
           <Text className="text-xl font-semibold text-gray-800 mb-4">
-            {t('profile.farmingInfo')}
+            {tr('profile.farmingInfo', 'Farming Information')}
           </Text>
 
           <Dropdown
-            label={t('Farmer Type')}
-            placeholder={t('FarmerTypePlaceholder')}
+            label={tr('profile.farmerType', 'Farmer Type')}
+            placeholder={tr('profile.farmerTypePlaceholder', 'Select farmer type')}
             value={
               FARMER_TYPES.find((f) => f.value === profileData.farmerType)
                 ? t(
@@ -326,28 +414,28 @@ export const ProfileScreen = () => {
           />
 
           <CustomInput
-            label={t('Land Size')}
-            placeholder={t('LandSizePlaceholder')}
+            label={tr('profile.landSize', 'Land Size')}
+            placeholder={tr('profile.landSizePlaceholder', 'Enter land size')}
             value={profileData.landSize}
             onChangeText={(value) => handleFieldChange('landSize', value)}
             keyboardType="decimal-pad"
-            suffix={t('Acres')}
+            suffix={tr('profile.acres', 'acres')}
           />
         </View>
 
         {/* Preferences Section */}
         <View className="mb-8">
           <Text className="text-xl font-semibold text-gray-800 mb-4">
-            {t('Preferences')}
+            {tr('profile.preferences', 'Preferences')}
           </Text>
 
           <View className="bg-gray-50 rounded-xl p-4 flex-row justify-between items-center">
             <View className="flex-1">
               <Text className="text-gray-900 font-medium text-base mb-1">
-                {t('Enable Notification ')}
+                {tr('profile.enableNotification', 'Enable Notifications')}
               </Text>
               <Text className="text-gray-600 text-sm">
-                {t('For update all time ')}
+                {tr('profile.notificationDesc', 'Get updates on your crops and weather')}
               </Text>
             </View>
             <Switch
@@ -373,7 +461,7 @@ export const ProfileScreen = () => {
             <ActivityIndicator color="white" />
           ) : (
             <Text className="text-white text-center text-lg font-semibold" numberOfLines={1} adjustsFontSizeToFit>
-              {t('SaveChanges')}
+              {tr('profile.saveChanges', 'Save Changes')}
             </Text>
           )}
         </TouchableOpacity>
@@ -383,7 +471,7 @@ export const ProfileScreen = () => {
           className="rounded-xl py-4 border-2 border-red-500 mb-4"
         >
           <Text className="text-red-500 text-center text-lg font-semibold" numberOfLines={1} adjustsFontSizeToFit>
-            {t('Logout')}
+            {tr('profile.logout', 'Logout')}
           </Text>
         </TouchableOpacity>
       </View>

@@ -14,8 +14,9 @@ import {
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
-import { Audio } from 'expo-av';
 import { useTranslation } from 'react-i18next';
+import { getGeminiChatResponse } from '../services/gemini';
+import { FormattedText } from './FormattedText';
 
 interface ChatMessage {
   id: string;
@@ -32,6 +33,7 @@ interface ChatbotModalProps {
 export const ChatbotModal: React.FC<ChatbotModalProps> = ({ visible, onClose }) => {
   const { t, i18n } = useTranslation();
   const scrollViewRef = useRef<ScrollView>(null);
+  const isMountedRef = useRef(true);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -43,7 +45,6 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ visible, onClose }) 
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -70,6 +71,13 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ visible, onClose }) 
   }, [isRecording]);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
     // Auto-scroll to bottom when new messages arrive
     if (scrollViewRef.current) {
       setTimeout(() => {
@@ -80,164 +88,77 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ visible, onClose }) 
 
   const generateResponse = (input: string): string => {
     const lowerInput = input.toLowerCase();
-    
+
     // Greetings
     if (lowerInput.match(/\b(hi|hello|hey|namaste)\b/)) {
       return t('chatbot.responses.greeting');
     }
-    
+
     // Crop-related queries
     if (lowerInput.includes('crop') || lowerInput.includes('plant') || lowerInput.includes('farming') || lowerInput.includes('cultivation')) {
       return t('chatbot.responses.crop');
-    } 
-    
+    }
+
     // Disease/Pest queries
     if (lowerInput.includes('disease') || lowerInput.includes('pest') || lowerInput.includes('sick') || lowerInput.includes('problem') || lowerInput.includes('infection')) {
       return t('chatbot.responses.disease');
-    } 
-    
+    }
+
     // Weather queries
     if (lowerInput.includes('weather') || lowerInput.includes('rain') || lowerInput.includes('temperature') || lowerInput.includes('humidity')) {
       return t('chatbot.responses.weather');
-    } 
-    
+    }
+
     // Document queries
     if (lowerInput.includes('document') || lowerInput.includes('paper') || lowerInput.includes('certificate') || lowerInput.includes('form')) {
       return t('chatbot.responses.document');
     }
-    
+
     // Fertilizer queries
     if (lowerInput.includes('fertilizer') || lowerInput.includes('manure') || lowerInput.includes('compost') || lowerInput.includes('nutrients')) {
       return t('chatbot.responses.fertilizer');
     }
-    
+
     // Irrigation/Water queries
     if (lowerInput.includes('water') || lowerInput.includes('irrigation') || lowerInput.includes('watering')) {
       return t('chatbot.responses.water');
     }
-    
+
     // Harvest queries
     if (lowerInput.includes('harvest') || lowerInput.includes('yield') || lowerInput.includes('produce')) {
       return t('chatbot.responses.harvest');
     }
-    
+
     // Price/Market queries
     if (lowerInput.includes('price') || lowerInput.includes('market') || lowerInput.includes('sell')) {
       return t('chatbot.responses.price');
     }
-    
+
     // Help/Features
     if (lowerInput.includes('help') || lowerInput.includes('feature') || lowerInput.includes('how') || lowerInput.includes('what can')) {
       return t('chatbot.responses.help');
     }
-    
+
     // Thank you
     if (lowerInput.includes('thank') || lowerInput.includes('thanks')) {
       return t('chatbot.responses.thanks');
     }
-    
+
     // Default response
     return t('chatbot.responses.default');
   };
 
   const startRecording = async () => {
-    try {
-      const permission = await Audio.requestPermissionsAsync();
-      
-      if (permission.status !== 'granted') {
-        Alert.alert(
-          t('chatbot.permissions.title') || 'Permission Required',
-          t('chatbot.permissions.microphone') || 'Microphone access is required for voice input.'
-        );
-        return;
-      }
-
-      // Configure audio mode for recording
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false,
-      });
-
-      // Create recording with high quality settings
-      const { recording } = await Audio.Recording.createAsync({
-        isMeteringEnabled: true,
-        android: {
-          extension: '.m4a',
-          outputFormat: Audio.AndroidOutputFormat.MPEG_4,
-          audioEncoder: Audio.AndroidAudioEncoder.AAC,
-          sampleRate: 44100,
-          numberOfChannels: 2,
-          bitRate: 128000,
-        },
-        ios: {
-          extension: '.m4a',
-          outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
-          audioQuality: Audio.IOSAudioQuality.HIGH,
-          sampleRate: 44100,
-          numberOfChannels: 2,
-          bitRate: 128000,
-          linearPCMBitDepth: 16,
-          linearPCMIsBigEndian: false,
-          linearPCMIsFloat: false,
-        },
-        web: {
-          mimeType: 'audio/webm',
-          bitsPerSecond: 128000,
-        },
-      });
-      
-      setRecording(recording);
-      setIsRecording(true);
-      
-      console.log('Recording started successfully');
-    } catch (err) {
-      console.error('Failed to start recording', err);
-      Alert.alert(
-        t('chatbot.error') || 'Error',
-        t('chatbot.recordingError') || 'Failed to start recording. Please try again.'
-      );
-    }
+    // Voice input temporarily disabled - please type your message
+    Alert.alert(
+      t('chatbot.info') || 'Info',
+      'Voice input is temporarily unavailable. Please type your message instead.'
+    );
   };
 
   const stopRecording = async () => {
-    if (!recording) return;
-
-    try {
-      setIsRecording(false);
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
-      
-      if (uri) {
-        // In a production app, you would send this audio file to a speech-to-text API
-        // For now, we'll use a simulated multilingual transcription based on user's language
-        const languagePrompts = {
-          en: 'How can I improve my crop yield?',
-          bn: 'আমি কিভাবে আমার ফসলের ফলন উন্নত করতে পারি?',
-          hi: 'मैं अपनी फसल की उपज कैसे बढ़ा सकता हूं?'
-        };
-        
-        const transcription = languagePrompts[i18n.language as keyof typeof languagePrompts] || languagePrompts.en;
-        setInputText(transcription);
-        
-        Alert.alert(
-          t('chatbot.voiceRecorded') || 'Voice Recorded',
-          t('chatbot.voiceProcessed') || 'Your voice has been transcribed. You can now send the message.',
-          [{ text: 'OK' }]
-        );
-      }
-      
-      setRecording(null);
-    } catch (err) {
-      console.error('Failed to stop recording', err);
-      Alert.alert(
-        t('chatbot.error') || 'Error',
-        t('chatbot.recordingError') || 'Failed to process voice recording',
-        [{ text: 'OK' }]
-      );
-    }
+    // Voice input disabled
+    setIsRecording(false);
   };
 
   const speakText = async (text: string) => {
@@ -248,7 +169,7 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ visible, onClose }) 
     }
 
     const languageCode = i18n.language === 'bn' ? 'bn-IN' : i18n.language === 'hi' ? 'hi-IN' : 'en-US';
-    
+
     setIsSpeaking(true);
     Speech.speak(text, {
       language: languageCode,
@@ -259,11 +180,12 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ visible, onClose }) 
   };
 
   const handleSend = async () => {
-    if (!inputText.trim()) return;
+    const userText = inputText.trim();
+    if (!userText) return;
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
-      text: inputText,
+      text: userText,
       isUser: true,
       timestamp: new Date(),
     };
@@ -272,17 +194,47 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ visible, onClose }) 
     setInputText('');
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      const historyForGemini = messages.slice(-12).map((m) => ({
+        role: m.isUser ? ('user' as const) : ('model' as const),
+        text: m.text,
+      }));
+
+      const reply = await getGeminiChatResponse({
+        userText,
+        language: i18n.language,
+        history: historyForGemini,
+      });
+
+      if (!isMountedRef.current) return;
+
       const botMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        text: generateResponse(inputText),
+        text: reply,
         isUser: false,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, botMessage]);
-      setIsTyping(false);
-    }, 1500);
+    } catch (err) {
+      console.error('Gemini response error:', err);
+      if (!isMountedRef.current) return;
+
+      const fallbackMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        text: generateResponse(userText),
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, fallbackMessage]);
+
+      Alert.alert(
+        t('chatbot.error') || 'Error',
+        t('chatbot.aiError') ||
+        'Could not reach AI service. Showing a fallback response.'
+      );
+    } finally {
+      if (isMountedRef.current) setIsTyping(false);
+    }
   };
 
   return (
@@ -326,36 +278,30 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ visible, onClose }) 
               key={message.id}
               className={`mb-3 ${message.isUser ? 'items-end' : 'items-start'}`}
             >
-              <View className="flex-row items-end">
+              <View className="flex-row items-start">
                 {!message.isUser && (
                   <TouchableOpacity
                     onPress={() => speakText(message.text)}
                     className="bg-gray-200 rounded-full w-8 h-8 items-center justify-center mr-2"
+                    style={{ marginTop: 4 }}
                   >
-                    <Ionicons 
-                      name={isSpeaking ? "volume-high" : "volume-medium"} 
-                      size={16} 
-                      color="#4B5563" 
+                    <Ionicons
+                      name={isSpeaking ? "volume-high" : "volume-medium"}
+                      size={16}
+                      color="#4B5563"
                     />
                   </TouchableOpacity>
                 )}
                 <View
-                  className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                    message.isUser
+                  className={`max-w-[90%] rounded-2xl px-4 py-3 ${message.isUser
                       ? 'bg-primary'
                       : 'bg-gray-100'
-                  }`}
-                >
-                  <Text
-                    className={`text-base ${
-                      message.isUser ? 'text-white' : 'text-gray-800'
                     }`}
-                  >
-                    {message.text}
-                  </Text>
+                >
+                  <FormattedText text={message.text} isUser={message.isUser} />
                 </View>
               </View>
-              <Text className="text-xs text-gray-400 mt-1 px-2">
+              <Text className={`text-xs text-gray-400 mt-1 ${!message.isUser ? 'ml-10' : ''}`}>
                 {message.timestamp.toLocaleTimeString([], {
                   hour: '2-digit',
                   minute: '2-digit',
@@ -397,19 +343,18 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ visible, onClose }) 
             >
               <TouchableOpacity
                 onPress={isRecording ? stopRecording : startRecording}
-                className={`mr-2 w-10 h-10 rounded-full items-center justify-center ${
-                  isRecording ? 'bg-red-500' : 'bg-gray-300'
-                }`}
+                className={`w-12 h-12 rounded-full items-center justify-center ${isRecording ? 'bg-red-500' : 'bg-gray-300'
+                  }`}
               >
                 <Ionicons
                   name={isRecording ? "stop" : "mic"}
-                  size={20}
+                  size={22}
                   color="#fff"
                 />
               </TouchableOpacity>
             </Animated.View>
             <TextInput
-              className="flex-1 py-3 text-base text-gray-800"
+              className="flex-1 py-4 text-base text-gray-800"
               placeholder={t('chatbot.inputPlaceholder') || 'Type your message...'}
               value={inputText}
               onChangeText={setInputText}
@@ -419,13 +364,12 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ visible, onClose }) 
             <TouchableOpacity
               onPress={handleSend}
               disabled={!inputText.trim()}
-              className={`ml-2 w-10 h-10 rounded-full items-center justify-center ${
-                inputText.trim() ? 'bg-primary' : 'bg-gray-300'
-              }`}
+              className={`w-12 h-12 rounded-full items-center justify-center ${inputText.trim() ? 'bg-primary' : 'bg-gray-300'
+                }`}
             >
               <Ionicons
                 name="send"
-                size={20}
+                size={22}
                 color={inputText.trim() ? '#fff' : '#999'}
               />
             </TouchableOpacity>

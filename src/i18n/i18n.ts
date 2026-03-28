@@ -7,11 +7,29 @@ import hi from './locales/hi.json';
 
 const LANGUAGE_KEY = '@app_language';
 
-// Load saved language
+// Initialize i18n synchronously first
+i18n.use(initReactI18next).init({
+  compatibilityJSON: 'v3',
+  resources: {
+    en: { translation: en },
+    bn: { translation: bn },
+    hi: { translation: hi },
+  },
+  lng: 'en',
+  fallbackLng: 'en',
+  interpolation: {
+    escapeValue: false,
+  },
+  react: {
+    useSuspense: false,
+  },
+});
+
+// Load saved language asynchronously after init
 export const loadLanguage = async () => {
   try {
     const savedLanguage = await AsyncStorage.getItem(LANGUAGE_KEY);
-    if (savedLanguage) {
+    if (savedLanguage && i18n.isInitialized) {
       await i18n.changeLanguage(savedLanguage);
     }
   } catch (error) {
@@ -28,23 +46,9 @@ export const saveLanguage = async (language: string) => {
   }
 };
 
-i18n
-  .use(initReactI18next)
-  .init({
-    compatibilityJSON: 'v3',
-    resources: {
-      en: { translation: en },
-      bn: { translation: bn },
-      hi: { translation: hi },
-    },
-    lng: 'en',
-    fallbackLng: 'en',
-    interpolation: {
-      escapeValue: false,
-    },
-  });
-
-// Load saved language on initialization
-loadLanguage();
+// Load saved language after a short delay to ensure app is ready
+setTimeout(() => {
+  loadLanguage();
+}, 100);
 
 export default i18n;

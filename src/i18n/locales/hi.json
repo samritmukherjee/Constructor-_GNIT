@@ -1,4 +1,209 @@
 {
+  "roleSelection": {
+    "title": "कृषकशार्थी",
+    "subtitle": "जारी रखने के लिए अपनी भूमिका चुनें",
+    "language": "भाषा",
+    "languagePlaceholder": "भाषा चुनें",
+    "farmer": "किसान",
+    "farmerDescription": "कृषि उपकरण, भविष्यवाणी और संसाधनों तक पहुंचें",
+    "buyer": "खरीदार",
+    "buyerDescription": "किसानों से जुड़ें और कृषि उत्पाद खरीदें",
+    "footerNote": "वह भूमिका चुनें जो आपका सबसे अच्छा वर्णन करती है"
+  },
+  "buyerSignIn": {
+    "title": "खरीदार साइन इन",
+    "subtitle": "वापसी पर स्वागत है, खरीदार",
+    "mobileNumber": "मोबाइल नंबर",
+    "mobileNumberPlaceholder": "9876543210",
+    "password": "पासवर्ड",
+    "passwordPlaceholder": "अपना पासवर्ड दर्ज करें",
+    "signInButton": "साइन इन करें",
+    "noAccount": "खाता नहीं है?",
+    "signUpButton": "साइन अप करें",
+    "back": "वापस",
+    "cancel": "रद्द करें",
+    "errors": {
+      "required": "यह फ़ील्ड आवश्यक है",
+      "invalidMobile": "एक वैध 10 अंकों का मोबाइल नंबर दर्ज करें",
+      "noAccount": "कोई खाता नहीं मिला। खाता नहीं है? साइन अप करें।",
+      "default": "साइन इन विफल।"
+    }
+  },
+  "buyerSignUp": {
+    "title": "खरीदार खाता बनाएं",
+    "subtitle": "किसानों से जुड़ने के लिए खरीदार के रूप में शामिल हों",
+    "fullName": "पूरा नाम",
+    "fullNamePlaceholder": "जॉन डो",
+    "mobileNumber": "मोबाइल नंबर",
+    "mobileNumberPlaceholder": "9876543210",
+    "email": "ईमेल (वैकल्पिक)",
+    "emailPlaceholder": "आपका@ईमेल.com",
+    "password": "पासवर्ड",
+    "passwordPlaceholder": "पासवर्ड दर्ज करें",
+    "confirmPassword": "पासवर्ड की पुष्टि करें",
+    "confirmPasswordPlaceholder": "पासवर्ड फिर से दर्ज करें",
+    "createAccount": "खरीदार खाता बनाएं",
+    "alreadyHaveAccount": "पहले से खाता है?",
+    "signInButton": "साइन इन करें",
+    "back": "वापस",
+    "success": "सफलता",
+    "accountCreated": "आपका खरीदार खाता सफलतापूर्वक बना दिया गया है!",
+    "continue": "जारी रखें",
+    "errors": {
+      "required": "यह फ़ील्ड आवश्यक है",
+      "invalidEmail": "एक वैध ईमेल पता दर्ज करें",
+      "invalidMobile": "एक वैध 10 अंकों का मोबाइल नंबर दर्ज करें",
+      "passwordMinLength": "पासवर्ड कम से कम 6 अक्षरों का होना चाहिए",
+      "passwordMismatch": "पासवर्ड मेल नहीं खाते",
+      "default": "खाता बनाना विफल। कृपया पुनः प्रयास करें।"
+    }
+  },
+  "buyerDashboard": {
+    "greeting": "नमस्ते खरीदार!",
+    "subtitle": "किसानों से ताजा उपज देखें",
+    "language": "भाषा",
+    "languagePlaceholder": "भाषा चुनें",
+    "summary": {
+      "title": "बाजार सारांश",
+      "activeSellers": "सक्रिय विक्रेता",
+      "availableCrops": "उपलब्ध फसलें",
+      "availableCropsValue": "चावल, गेहूं, आलू",
+      "averagePrice": "औसत मूल्य",
+      "perKg": "किलो"
+    },
+    "quickActions": {
+      "title": "त्वरित कार्रवाई",
+      "viewAllCrops": "सभी फसलें देखें",
+      "contactFarmer": "किसान से संपर्क करें"
+    },
+    "availableCrops": {
+      "title": "उपलब्ध फसलें",
+      "price": "मूल्य"
+    },
+    "crops": {
+      "rice": "चावल",
+      "wheat": "गेहूं",
+      "potato": "आलू",
+      "tomato": "टमाटर"
+    },
+    "locations": {
+      "nadia": "नदिया, पश्चिम बंगाल",
+      "punjab": "पंजाब",
+      "bihar": "बिहार",
+      "maharashtra": "महाराष्ट्र"
+    },
+    "marketFeed": {
+      "title": "बाजार अपडेट",
+      "update1Title": "पश्चिम बंगाल में चावल की कीमतें बढ़ीं",
+      "update1Description": "इस महीने चावल की बाजार मांग में 20% की वृद्धि हुई है।",
+      "update1Region": "पश्चिम बंगाल",
+      "update2Title": "स्थानीय किसानों से ताजी सब्जियां उपलब्ध",
+      "update2Description": "थोक खरीद के लिए मौसमी सब्जियां तैयार हैं।",
+      "update2Region": "पंजाब",
+      "update3Title": "जैविक गेहूं की कटाई पूरी हुई",
+      "update3Description": "प्रतिस्पर्धी कीमतों पर प्रीमियम गुणवत्ता वाला जैविक गेहूं उपलब्ध है।",
+      "update3Region": "हरियाणा"
+    }
+  },
+  "viewAllCrops": {
+    "title": "सभी उपलब्ध फसलें",
+    "subtitle": "किसानों से ब्राउज़ करें और जुड़ें",
+    "back": "वापस",
+    "price": "मूल्य",
+    "perKg": "किलो",
+    "available": "उपलब्ध",
+    "kg": "किलो",
+    "farmer": "किसान",
+    "contact": "संपर्क करें",
+    "quality": {
+      "premium": "प्रीमियम",
+      "organic": "जैविक",
+      "fresh": "ताज़ा"
+    },
+    "crops": {
+      "rice": "चावल",
+      "wheat": "गेहूं",
+      "potato": "आलू",
+      "tomato": "टमाटर",
+      "onion": "प्याज",
+      "sugarcane": "गन्ना",
+      "cotton": "कपास",
+      "corn": "मक्का"
+    },
+    "locations": {
+      "nadia": "नदिया, पश्चिम बंगाल",
+      "punjab": "लुधियाना, पंजाब",
+      "bihar": "पटना, बिहार",
+      "maharashtra": "नासिक, महाराष्ट्र",
+      "up": "लखनऊ, उत्तर प्रदेश",
+      "gujarat": "अहमदाबाद, गुजरात",
+      "karnataka": "बैंगलोर, कर्नाटक"
+    },
+    "farmers": {
+      "ramesh": "रमेश कुमार",
+      "gurpreet": "गुरप्रीत सिंह",
+      "rajesh": "राजेश शर्मा",
+      "suresh": "सुरेश पाटिल",
+      "amit": "अमित देसाई",
+      "vijay": "विजय यादव",
+      "bharat": "भरत पटेल",
+      "krishna": "कृष्णा रेड्डी"
+    }
+  },
+  "contactFarmer": {
+    "title": "किसान से संपर्क करें",
+    "subtitle": "हमारी सहायता टीम से संपर्क करें",
+    "back": "वापस",
+    "call": "कॉल करें",
+    "sms": "एसएमएस भेजें",
+    "email": "ईमेल",
+    "error": "त्रुटि",
+    "phoneError": "फोन कॉल करने में असमर्थ",
+    "smsError": "एसएमएस भेजने में असमर्थ",
+    "emailError": "ईमेल भेजने में असमर्थ",
+    "supportTeam": "सहायता टीम",
+    "infoTitle": "कैसे जुड़ें",
+    "infoText": "किसानों से जुड़ने के लिए हमारी सहायता टीम से संपर्क करें। हम खरीदारों और किसानों के बीच सीधे संचार को सुविधाजनक बनाने में मदद करते हैं।",
+    "support": {
+      "name1": "किसान सहायता केंद्र",
+      "address1": "कोलकाता, पश्चिम बंगाल",
+      "desc1": "खरीदार-किसान कनेक्शन के लिए मुख्य सहायता केंद्र",
+      "name2": "क्षेत्रीय हेल्पलाइन",
+      "address2": "दिल्ली, एनसीआर",
+      "desc2": "उत्तर भारत के लिए क्षेत्रीय सहायता",
+      "name3": "ग्राहक सेवा",
+      "address3": "मुंबई, महाराष्ट्र",
+      "desc3": "तत्काल सहायता के लिए 24/7 ग्राहक सेवा"
+    }
+  },
+  "contactBuyer": {
+    "title": "खरीदार से संपर्क करें",
+    "subtitle": "इच्छुक खरीदारों से जुड़ें",
+    "back": "वापस",
+    "call": "कॉल करें",
+    "sms": "एसएमएस भेजें",
+    "email": "ईमेल",
+    "error": "त्रुटि",
+    "phoneError": "फोन कॉल करने में असमर्थ",
+    "smsError": "एसएमएस भेजने में असमर्थ",
+    "emailError": "ईमेल भेजने में असमर्थ",
+    "loading": "खरीदार संपर्क लोड हो रहे हैं...",
+    "noBuyers": "कोई खरीदार संपर्क उपलब्ध नहीं",
+    "interestedBuyers": "इच्छुक खरीदार",
+    "infoTitle": "नए खरीदार अनुरोध",
+    "infoText": "आपके पास खरीदार पूछताछ है! अपनी फसल की तलाश में खरीदारों से जुड़ें। नारंगी अधिसूचना बैज सक्रिय अनुरोध दिखाते हैं।",
+    "buyers": {
+      "name1": "थोक बाजार दिल्ली",
+      "address1": "आज़ादपुर मंडी, दिल्ली",
+      "desc1": "अनाज और सब्जियों के लिए बड़ा थोक खरीदार",
+      "name2": "ऑर्गेनिक फूड्स मुंबई",
+      "address2": "वाशी मार्केट, मुंबई",
+      "desc2": "प्रीमियम दरों के साथ जैविक उपज खरीदार",
+      "name3": "फ्रेश मार्ट कोलकाता",
+      "address3": "कोलकाता, पश्चिम बंगाल",
+      "desc3": "ताजी सब्जियों और फलों के लिए नियमित खरीदार"
+    }
+  },
   "signUp": {
     "title": "खाता बनाएं",
     "accountInfo": "खाता जानकारी",
@@ -77,7 +282,26 @@
       "temperature": "तापमान",
       "rain": "वर्षा",
       "humidity": "आर्द्रता",
-      "condition": "स्थिति"
+      "condition": "स्थिति",
+      "precipitation": "वर्षा",
+      "hourlyForecast": "प्रति घंटा पूर्वानुमान",
+      "loading": "मौसम लोड हो रहा है...",
+      "error": "मौसम लोड करने में असमर्थ",
+      "locationError": "स्थान एक्सेस अस्वीकृत",
+      "retry": "पुनः प्रयास करें",
+      "conditions": {
+        "clear": "साफ आसमान",
+        "partlyCloudy": "आंशिक बादल",
+        "cloudy": "बादल छाए",
+        "foggy": "धुंधला",
+        "drizzle": "बूंदाबांदी",
+        "rainy": "बारिश",
+        "heavyRain": "भारी बारिश",
+        "snowy": "बर्फबारी",
+        "showers": "बौछारें",
+        "snowShowers": "बर्फ की बौछारें",
+        "thunderstorm": "आंधी-तूफान"
+      }
     },
     "farmSummary": {
       "title": "खेत सारांश",
@@ -116,6 +340,8 @@
     "subtitle": "सुविधाओं पर जाएं",
     "profile": "मेरी प्रोफ़ाइल",
     "profileSubtitle": "अपने खाता सेटिंग प्रबंधित करें",
+    "contactBuyer": "खरीदार से संपर्क करें",
+    "contactBuyerSubtitle": "इच्छुक खरीदारों से जुड़ें",
     "version": "संस्करण"
   },
   "prediction": {
@@ -153,7 +379,15 @@
       "corn": "मक्का",
       "potato": "आलू",
       "tomato": "टमाटर",
-      "onion": "प्याज"
+      "onion": "प्याज",
+      "maize": "मक्का",
+      "soybean": "सोयाबीन",
+      "chili": "मिर्च",
+      "banana": "केला",
+      "mango": "आम",
+      "tea": "चाय",
+      "coffee": "कॉफी",
+      "groundnut": "मूंगफली"
     },
     "soilTypes": {
       "alluvial": "जलोढ़ मिट्टी",
@@ -246,6 +480,9 @@
     "selectLanguage": "भाषा चुनें",
     "summary": "दस्तावेज़ सारांश",
     "keyPoints": "मुख्य बिंदु",
+    "reanalyze": "फिर से विश्लेषण करें",
+    "listen": "सुनें",
+    "stop": "रोकें",
     "actionRequired": "आवश्यक कार्रवाई",
     "importantAction": "महत्वपूर्ण कार्रवाई",
     "uploadNew": "दूसरा दस्तावेज़ अपलोड करें",
@@ -279,10 +516,25 @@
     "analyzeButton": "छवि का विश्लेषण करें",
     "analyzing": "विश्लेषण हो रहा है...",
     "imageRequired": "कृपया एक फसल छवि अपलोड करें",
+    "otherCropType": "फसल का प्रकार बताएं",
+    "otherCropTypePlaceholder": "फसल का नाम दर्ज करें",
     "cropTypes": {
       "rice": "चावल",
       "wheat": "गेहूं",
-      "potato": "आलू"
+      "potato": "आलू",
+      "tomato": "टमाटर",
+      "cotton": "कपास",
+      "sugarcane": "गन्ना",
+      "maize": "मक्का",
+      "soybean": "सोयाबीन",
+      "chili": "मिर्च",
+      "onion": "प्याज",
+      "banana": "केला",
+      "mango": "आम",
+      "tea": "चाय",
+      "coffee": "कॉफी",
+      "groundnut": "मूंगफली",
+      "other": "अन्य"
     },
     "weatherConditions": {
       "rainy": "बरसाती",
@@ -314,7 +566,10 @@
       "low": "कम",
       "medium": "मध्यम",
       "high": "उच्च"
-    }
+    },
+    "warning": "चेतावनी",
+    "notCropWarning": "यह छवि फसल या पौधे की नहीं लगती। कृपया रोग विश्लेषण के लिए फसल की छवि अपलोड करें।",
+    "uploadNewImage": "नयी छवि अपलोड करें"
   },
   "profile": {
     "title": "मेरी प्रोफ़ाइल",
@@ -346,7 +601,7 @@
       "title": "त्रुटि",
       "message": "प्रोफ़ाइल अपडेट करने में विफल"
     },
-    "logout": {
+    "logoutConfirm": {
       "confirmTitle": "लॉगआउट",
       "confirmMessage": "क्या आप निश्चित रूप से लॉगआउट करना चाहते हैं?",
       "cancel": "रद्द करें",

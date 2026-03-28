@@ -5,16 +5,36 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app needs access to your location to provide accurate weather information for your area."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-web-browser"
+    ],
+    "extra": {
+      "GEMINI_API_KEY": "${GEMINI_API_KEY}",
+      "HF_API_KEY": "${HF_API_KEY}",
+      "eas": {
+        "projectId": "fe8df180-e61b-4f4b-bcd8-d21685f866ff"
       }
     }
   }
