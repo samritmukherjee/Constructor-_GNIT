@@ -31,6 +31,46 @@ const firebaseConfig = {
   measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
+const normalizeStorageBucket = (
+  rawBucket: string | undefined,
+  projectId: string | undefined
+): string | undefined => {
+  const trimmed = rawBucket?.trim();
+
+  // If not provided, default to the canonical Firebase Storage bucket.
+  if (!trimmed) {
+    return projectId ? `${projectId}.appspot.com` : undefined;
+  }
+
+  let bucket = trimmed;
+
+  // Accept common paste formats.
+  if (bucket.startsWith('gs://')) {
+    bucket = bucket.slice('gs://'.length);
+  }
+  if (bucket.startsWith('https://firebasestorage.googleapis.com/v0/b/')) {
+    bucket = bucket.slice('https://firebasestorage.googleapis.com/v0/b/'.length);
+    bucket = bucket.split('/')[0];
+  }
+
+  // Expo/Firebase newcomers often put `<project>.firebasestorage.app`.
+  // The default bucket name used by Firebase Storage API is `<project>.appspot.com`.
+  // When the bucket name is wrong, uploads often fail with `storage/unknown` + HTTP 404.
+  if (projectId) {
+    if (bucket === `${projectId}.firebasestorage.app`) return `${projectId}.appspot.com`;
+    if (bucket === `${projectId}.firebasestorage.appspot.com`) return `${projectId}.appspot.com`;
+    if (bucket.endsWith('.firebasestorage.app')) return `${projectId}.appspot.com`;
+    if (bucket.includes('.firebasestorage.')) return `${projectId}.appspot.com`;
+  }
+
+  return bucket;
+};
+
+const resolvedStorageBucket = normalizeStorageBucket(
+  firebaseConfig.storageBucket,
+  firebaseConfig.projectId
+);
+
 // Validate that required environment variables are set
 const validateConfig = (): void => {
   const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'appId'];
@@ -42,6 +82,18 @@ const validateConfig = (): void => {
     console.warn(
       `⚠️ Missing Firebase configuration keys: ${missingKeys.join(', ')}. ` +
       'Please check your .env file.'
+    );
+  }
+
+  if (!resolvedStorageBucket) {
+    console.warn(
+      '⚠️ Firebase Storage bucket is not configured. Image uploads will fail. ' +
+      'Set EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET in .env (usually <projectId>.appspot.com).'
+    );
+  } else if (firebaseConfig.storageBucket?.includes('.firebasestorage.app')) {
+    console.warn(
+      `⚠️ EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET looks non-standard (${firebaseConfig.storageBucket}). ` +
+      `Using ${resolvedStorageBucket} instead.`
     );
   }
 };
@@ -65,7 +117,9 @@ if (getApps().length === 0) {
  * Firestore Database
  */
 const db = getFirestore(app);
-const storage = getStorage(app);
+const storage = resolvedStorageBucket
+  ? getStorage(app, `gs://${resolvedStorageBucket}`)
+  : getStorage(app);
 
 /**
  * Initialize Firebase Auth with AsyncStorage persistence
@@ -105,5 +159,5 @@ googleProvider.setCustomParameters({
 });
 
 // Export initialized Firebase instances
-export { app, auth, db, storage, googleProvider };
+export { app, auth, db, storage, googleProvider, resolvedStorageBucket };
 export default app;

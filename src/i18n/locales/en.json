@@ -10,6 +10,29 @@
     "buyerDescription": "Connect with farmers and purchase agricultural products",
     "footerNote": "Choose the role that best describes you"
   },
+  "landing": {
+    "signIn": "Sign In",
+    "signInDescription": "Already have an account? Sign in here",
+    "signUp": "Sign Up",
+    "signUpDescription": "Create a new account to get started",
+    "footerNote": "Welcome to KrishakSarthi"
+  },
+  "roleChoice": {
+    "title": "Choose Your Role",
+    "subtitle": "Select how you want to use KrishakSarthi",
+    "farmer": "Farmer",
+    "farmerDescription": "Access farming tools, predictions, and resources",
+    "buyer": "Buyer",
+    "buyerDescription": "Connect with farmers and purchase agricultural products"
+  },
+  "common": {
+    "back": "Back",
+    "status": {
+      "pending": "PENDING",
+      "accepted": "ACCEPTED",
+      "rejected": "REJECTED"
+    }
+  },
   "documentAnalyzer": {
     "title": "Document Analyzer",
     "subtitle": "Analyze farming documents"
@@ -115,6 +138,17 @@
       "update3Region": "Haryana"
     }
   },
+  "buyerDrawer": {
+    "title": "Buyer Menu",
+    "subtitle": "Navigate to features",
+    "viewAllCrops": "View All Crops",
+    "viewAllCropsSubtitle": "Browse available crops from farmers",
+    "contactFarmer": "Contact Farmer",
+    "contactFarmerSubtitle": "Connect with farmers directly",
+    "profile": "My Profile",
+    "profileSubtitle": "Manage your account settings",
+    "version": "Version"
+  },
   "viewAllCrops": {
     "title": "All Available Crops",
     "subtitle": "Browse and connect with farmers",
@@ -171,6 +205,27 @@
     "phoneError": "Unable to make phone call",
     "smsError": "Unable to send SMS",
     "emailError": "Unable to send email",
+    "notificationsTitle": "Notifications",
+    "markAllRead": "Mark all read",
+    "markAsRead": "Mark as read",
+    "noNotificationsYet": "No notifications yet.",
+    "farmerLabel": "Farmer",
+    "negotiation": "Negotiation",
+    "requestToBuy": "Request to Buy",
+    "qtyShort": "Qty",
+    "price": "Price",
+    "chat": "Chat",
+    "failedToMarkRead": "Failed to mark as read",
+    "failedToMarkAllRead": "Failed to mark notifications read",
+    "locationServicesDisabledTitle": "Location Services Disabled",
+    "locationPermissionRequiredTitle": "Location Permission Required",
+    "locationRequired": "Location Required",
+    "turnOnLocationServices": "Please enable Location Services in your device settings and try again.",
+    "turnOnLocationToSearch": "Please turn on location to search nearby farmers.",
+    "allowLocationPermission": "Please allow location permission to find nearby farmers. You will be directed to app settings.",
+    "openSettings": "Open Settings",
+    "ok": "OK",
+    "locationDetectFailed": "Could not detect your location. Please try again.",
     "supportTeam": "Support Team",
     "infoTitle": "How to Connect",
     "infoText": "Contact our support team to get connected with farmers. We help facilitate direct communication between buyers and farmers.",
@@ -194,14 +249,33 @@
     "sms": "Send SMS",
     "email": "Email",
     "error": "Error",
+    "success": "Success",
+    "updated": "Updated",
     "phoneError": "Unable to make phone call",
     "smsError": "Unable to send SMS",
     "emailError": "Unable to send email",
+    "offerAccepted": "Offer accepted. Buyer has been notified.",
+    "offerRejected": "Offer rejected. Buyer has been notified.",
+    "failedToAcceptOffer": "Failed to accept offer",
+    "failedToRejectOffer": "Failed to reject offer",
     "loading": "Loading buyer contacts...",
     "noBuyers": "No buyer contacts available",
     "interestedBuyers": "Interested Buyers",
     "infoTitle": "New Buyer Requests",
     "infoText": "You have buyer inquiries! Connect with buyers looking for your crops. Orange notification badges show active requests.",
+    "notificationsTitle": "Notifications",
+    "markAllRead": "Mark all as read",
+    "markAsRead": "Mark as read",
+    "noNotificationsYet": "No notifications yet.",
+    "negotiationOffer": "Negotiation Offer",
+    "requestToBuy": "Request to Buy",
+    "quantity": "Quantity",
+    "price": "Price",
+    "accept": "Accept",
+    "acceptNegotiation": "Accept Negotiation",
+    "reject": "Reject",
+    "failedToMarkRead": "Failed to mark as read",
+    "failedToMarkAllRead": "Failed to mark all as read",
     "buyers": {
       "name1": "Wholesale Market Delhi",
       "address1": "Azadpur Mandi, Delhi",
@@ -284,8 +358,9 @@
     }
   },
   "dashboard": {
-    "greeting": "Hello Farmer!",
+    "title": "KrishaKSarthi",
     "subtitle": "Your Smart Farming Assistant",
+    "greeting": "Hello Farmer!",
     "predictCrop": "Crop Prediction",
     "predictSubtitle": "Get yield predictions",
     "analyzeDocument": "Document Analyzer",
@@ -302,6 +377,15 @@
       "error": "Unable to load weather",
       "locationError": "Location access denied",
       "retry": "Retry",
+      "am": "AM",
+      "pm": "PM",
+      "now": "Now",
+      "morning": "morning",
+      "noon": "noon",
+      "afternoon": "afternoon",
+      "evening": "evening",
+      "night": "night",
+      "feelsLike": "Feels like",
       "conditions": {
         "clear": "Clear Sky",
         "partlyCloudy": "Partly Cloudy",
@@ -338,6 +422,25 @@
       "update4Title": "Wheat Market Price Surge",
       "update4Description": "Wheat prices increase by 15% due to high demand. Good news for wheat farmers.",
       "update4Region": "Haryana"
+    },
+    "news": {
+      "title": "Agricultural News",
+      "refresh": "Refresh",
+      "loading": "Loading latest news...",
+      "empty": "No news available",
+      "retry": "Retry",
+      "readMore": "Read More",
+      "fullArticle": "Full Article",
+      "source": "Source",
+      "summary": "Summary",
+      "footer": "Stay informed with the latest agricultural news",
+      "categories": {
+        "agriculture": "Agriculture",
+        "weather": "Weather",
+        "market": "Market",
+        "policy": "Policy",
+        "technology": "Technology"
+      }
     },
     "weatherData": {
       "partlyCloudy": "Partly Cloudy",
@@ -562,7 +665,12 @@
   },
   "common": {
     "unknown": "unknown",
-    "back": "Back"
+    "back": "Back",
+    "status": {
+      "pending": "PENDING",
+      "accepted": "ACCEPTED",
+      "rejected": "REJECTED"
+    }
   },
   "profile": {
     "title": "My Profile",
@@ -635,8 +743,12 @@
     "voiceRecorded": "Voice Recorded",
     "voiceProcessed": "Your voice has been transcribed. You can now send the message.",
     "recording": "Recording...",
+    "processing": "Processing audio...",
     "error": "Error",
     "recordingError": "Failed to process voice recording",
+    "permissionDenied": "Permission Denied",
+    "microphonePermission": "Microphone permission is required for voice input.",
+    "info": "Info",
     "permissions": {
       "title": "Permission Required",
       "microphone": "Microphone access is required for voice input."
@@ -689,7 +801,7 @@
     "nagpur": "Nagpur",
     "nashik": "Nashik",
     "thane": "Thane",
-    "aurangabad": "Aurangabad",
+    "aurangabad": "Aura ngabad",
     "ludhiana": "Ludhiana",
     "amritsar": "Amritsar",
     "jalandhar": "Jalandhar",
@@ -747,6 +859,7 @@
     "tripura": "Tripura",
     "uttarPradesh": "Uttar Pradesh",
     "uttarakhand": "Uttarakhand",
-    "westBengal": "West Bengal"
+    "westBengal": "West Bengal",
+    "india": "India"
   }
 }

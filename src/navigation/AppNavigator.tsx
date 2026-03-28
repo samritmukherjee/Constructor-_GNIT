@@ -4,10 +4,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 // Screens
 import { RoleSelectionScreen } from '../screens/RoleSelectionScreen';
+import { RoleChoiceScreen } from '../screens/RoleChoiceScreen';
 import { SignUpScreen } from '../screens/SignUpScreen';
 import { SignInScreen } from '../screens/SignInScreen';
-import { BuyerSignInScreen } from '../screens/BuyerSignInScreen';
-import { BuyerSignUpScreen } from '../screens/BuyerSignUpScreen';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { BuyerDashboardScreen } from '../screens/BuyerDashboardScreen';
 import { CropPredictionScreen } from '../screens/CropPredictionScreen';
@@ -19,6 +18,7 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { ViewAllCropsScreen } from '../screens/ViewAllCropScreen';
 import { ContactFarmerScreen } from '../screens/ContactFarmerScreen';
 import { ContactBuyerScreen } from '../screens/ContactBuyerScreen';
+import { ChatScreen } from '../screens/ChatScreen';
 
 // Services
 import {
@@ -31,12 +31,11 @@ import {
 ======================= */
 export type RootStackParamList = {
   RoleSelection: undefined;
+  RoleChoice: undefined; // New screen for choosing Farmer or Buyer after Sign Up
 
   // Auth
-  SignIn: undefined;
-  SignUp: undefined;
-  BuyerSignIn: undefined;
-  BuyerSignUp: undefined;
+  SignIn: { role?: 'farmer' | 'buyer' } | undefined;
+  SignUp: { role: 'farmer' | 'buyer' };
 
   // Dashboards
   Dashboard: undefined;
@@ -46,6 +45,11 @@ export type RootStackParamList = {
   ViewAllCrops: undefined;
   ContactFarmer: undefined;
   ContactBuyer: undefined;
+  Chat: {
+    contactName: string;
+    contactPhone: string;
+    userType: 'farmer' | 'buyer';
+  };
 
   // Crop Prediction
   CropPrediction: undefined;
@@ -84,12 +88,11 @@ export const AppNavigator = () => {
       >
         {/* Role Selection */}
         <Stack.Screen name="RoleSelection" component={RoleSelectionScreen} />
+        <Stack.Screen name="RoleChoice" component={RoleChoiceScreen} />
 
         {/* Auth */}
         <Stack.Screen name="SignIn" component={SignInScreen} />
         <Stack.Screen name="SignUp" component={SignUpScreen} />
-        <Stack.Screen name="BuyerSignIn" component={BuyerSignInScreen} />
-        <Stack.Screen name="BuyerSignUp" component={BuyerSignUpScreen} />
 
         {/* Dashboards */}
         <Stack.Screen name="Dashboard" component={DashboardScreen} />
@@ -99,6 +102,7 @@ export const AppNavigator = () => {
         <Stack.Screen name="ViewAllCrops" component={ViewAllCropsScreen} />
         <Stack.Screen name="ContactFarmer" component={ContactFarmerScreen} />
         <Stack.Screen name="ContactBuyer" component={ContactBuyerScreen} />
+        <Stack.Screen name="Chat" component={ChatScreen} />
 
         {/* Features */}
         <Stack.Screen name="CropPrediction" component={CropPredictionScreen} />

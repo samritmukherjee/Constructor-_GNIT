@@ -13,15 +13,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Sprout, ArrowLeft } from 'lucide-react-native';
+import { RouteProp, useRoute } from '@react-navigation/native';
+import { Sprout, ShoppingBasket, ArrowLeft } from 'lucide-react-native';
 import { CustomInput, PasswordInput } from '../components/CustomInput';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { signIn } from '../services/auth';
+import { signIn, signInWithGoogle, fetchCurrentUserProfile } from '../services/auth';
 
 type SignInScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   'SignIn'
 >;
+
+type SignInScreenRouteProp = RouteProp<RootStackParamList, 'SignIn'>;
 
 interface FormData {
   email: string;
@@ -35,8 +38,10 @@ interface FormErrors {
 export const SignInScreen = () => {
   const { t, i18n } = useTranslation();
   const navigation = useNavigation<SignInScreenNavigationProp>();
+  const route = useRoute<SignInScreenRouteProp>();
   const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(false);
+  const role = route.params?.role; // Can be undefined
   const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
@@ -107,7 +112,7 @@ export const SignInScreen = () => {
       const result = await signIn(formData.email, formData.password);
 
       if (!result.success) {
-        const title = tr('signIn.title', 'Farmer Sign In');
+        const title = tr('signIn.title', role === 'farmer' ? 'Farmer Sign In' : role === 'buyer' ? 'Buyer Sign In' : 'Sign In');
 
         if (result.errorCode === 'auth/user-not-found') {
           Alert.alert(
@@ -117,7 +122,7 @@ export const SignInScreen = () => {
               { text: tr('signIn.cancel', 'Cancel'), style: 'cancel' },
               {
                 text: tr('signIn.signUp', 'Sign Up'),
-                onPress: () => navigation.navigate('SignUp'),
+                onPress: () => navigation.navigate('RoleChoice'),
               },
             ]
           );
@@ -128,11 +133,24 @@ export const SignInScreen = () => {
         return;
       }
 
-      navigation.navigate('Dashboard');
+      // Fetch user profile to determine actual role
+      const profileResult = await fetchCurrentUserProfile();
+      let userRole = role; // Default to selected role if provided
+      
+      if (profileResult.success && profileResult.profile) {
+        userRole = profileResult.profile.role || profileResult.profile.userType;
+      }
+
+      // Navigate to appropriate dashboard
+      if (userRole === 'buyer') {
+        navigation.navigate('BuyerDashboard');
+      } else {
+        navigation.navigate('Dashboard');
+      }
     } catch (error) {
-      console.error('Farmer sign in error:', error);
+      console.error('Sign in error:', error);
       Alert.alert(
-        tr('signIn.title', 'Farmer Sign In'),
+        tr('signIn.title', role === 'farmer' ? 'Farmer Sign In' : role === 'buyer' ? 'Buyer Sign In' : 'Sign In'),
         tr('signIn.errors.default', 'Sign in failed.')
       );
     } finally {
@@ -160,7 +178,20 @@ export const SignInScreen = () => {
         Alert.alert(tr('signIn.title', 'Sign In'), result.message);
         return;
       }
-      navigation.navigate('Dashboard');
+      
+      // For Google sign-in, check profile or use selected role
+      const profileResult = await fetchCurrentUserProfile();
+      let userRole = role;
+      
+      if (profileResult.success && profileResult.profile) {
+        userRole = profileResult.profile.role || profileResult.profile.userType;
+      }
+
+      if (userRole === 'buyer') {
+        navigation.navigate('BuyerDashboard');
+      } else {
+        navigation.navigate('Dashboard');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -241,7 +272,14 @@ export const SignInScreen = () => {
             }}
             numberOfLines={1}
           >
-            {tr('signIn.back', 'ফিরে যান')}
+            {(() => {
+              try {
+                const translated = t('common.back');
+                return translated === 'common.back' ? 'Back' : translated;
+              } catch {
+                return 'Back';
+              }
+            })()}
           </Text>
         </TouchableOpacity>
 
@@ -253,24 +291,28 @@ export const SignInScreen = () => {
                 width: 50,
                 height: 50,
                 borderRadius: 25,
-                backgroundColor: '#16A34A',
+                backgroundColor: role === 'buyer' ? '#10B981' : '#16A34A',
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginRight: 12,
-                shadowColor: '#16A34A',
+                shadowColor: role === 'buyer' ? '#10B981' : '#16A34A',
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.3,
                 shadowRadius: 8,
                 elevation: 6,
               }}>
-                <Sprout size={26} color="white" strokeWidth={2.5} />
+                {role === 'buyer' ? (
+                  <ShoppingBasket size={26} color="white" strokeWidth={2.5} />
+                ) : (
+                  <Sprout size={26} color="white" strokeWidth={2.5} />
+                )}
               </View>
               <View style={{ flex: 1 }}>
                 <Text 
                   className="text-gray-900 font-extrabold" 
                   style={{ fontSize: 32, lineHeight: 38, letterSpacing: -0.5 }}
                 >
-                  {tr('signIn.title', 'Farmer Sign In')}
+                  {tr('signIn.title', role === 'farmer' ? 'Farmer Sign In' : role === 'buyer' ? 'Buyer Sign In' : 'Sign In')}
                 </Text>
               </View>
             </View>
@@ -346,7 +388,7 @@ export const SignInScreen = () => {
             {tr('signIn.noAccount', "Don't have an account?")}
           </Text>
           <TouchableOpacity 
-            onPress={() => navigation.navigate('SignUp')} 
+            onPress={() => navigation.navigate('RoleChoice')} 
             style={{ 
               paddingVertical: 6, 
               paddingHorizontal: 12,

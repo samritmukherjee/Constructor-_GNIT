@@ -4,6 +4,7 @@
     "slug": "krishak-sarthi",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./public/image.png",
     "userInterfaceStyle": "light",
     "platforms": [
       "ios",
@@ -20,6 +21,7 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./public/image.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": [

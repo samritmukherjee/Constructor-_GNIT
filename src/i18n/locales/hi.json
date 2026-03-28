@@ -10,6 +10,29 @@
     "buyerDescription": "किसानों से जुड़ें और कृषि उत्पाद खरीदें",
     "footerNote": "वह भूमिका चुनें जो आपका सबसे अच्छा वर्णन करती है"
   },
+  "landing": {
+    "signIn": "साइन इन करें",
+    "signInDescription": "पहले से एक खाता है? यहां साइन इन करें",
+    "signUp": "साइन अप करें",
+    "signUpDescription": "शुरू करने के लिए एक नया खाता बनाएं",
+    "footerNote": "कृषकशार्थी में आपका स्वागत है"
+  },
+  "roleChoice": {
+    "title": "अपनी भूमिका चुनें",
+    "subtitle": "चुनें कि आप कृषकशार्थी का उपयोग कैसे करना चाहते हैं",
+    "farmer": "किसान",
+    "farmerDescription": "कृषि उपकरण, भविष्यवाणी और संसाधनों तक पहुंचें",
+    "buyer": "खरीदार",
+    "buyerDescription": "किसानों से जुड़ें और कृषि उत्पाद खरीदें"
+  },
+  "common": {
+    "back": "वापस",
+    "status": {
+      "pending": "लंबित",
+      "accepted": "स्वीकृत",
+      "rejected": "अस्वीकृत"
+    }
+  },
   "documentAnalyzer": {
     "title": "दस्तावेज़ विश्लेषक",
     "subtitle": "कृषि दस्तावेजों का विश्लेषण करें"
@@ -115,6 +138,17 @@
       "update3Region": "हरियाणा"
     }
   },
+  "buyerDrawer": {
+    "title": "खरीदार मेनू",
+    "subtitle": "सुविधाओं पर नेविगेट करें",
+    "viewAllCrops": "सभी फसलें देखें",
+    "viewAllCropsSubtitle": "किसानों से उपलब्ध फसलें ब्राउज़ करें",
+    "contactFarmer": "किसान से संपर्क करें",
+    "contactFarmerSubtitle": "सीधे किसानों से जुड़ें",
+    "profile": "मेरी प्रोफ़ाइल",
+    "profileSubtitle": "अपनी खाता सेटिंग्स प्रबंधित करें",
+    "version": "संस्करण"
+  },
   "viewAllCrops": {
     "title": "सभी उपलब्ध फसलें",
     "subtitle": "किसानों से ब्राउज़ करें और जुड़ें",
@@ -171,6 +205,27 @@
     "phoneError": "फोन कॉल करने में असमर्थ",
     "smsError": "एसएमएस भेजने में असमर्थ",
     "emailError": "ईमेल भेजने में असमर्थ",
+    "notificationsTitle": "सूचनाएं",
+    "markAllRead": "सभी को पढ़ा हुआ करें",
+    "markAsRead": "पढ़ा हुआ चिह्नित करें",
+    "noNotificationsYet": "अभी कोई सूचनाएं नहीं।",
+    "farmerLabel": "किसान",
+    "negotiation": "मोलभाव",
+    "requestToBuy": "खरीद अनुरोध",
+    "qtyShort": "मात्रा",
+    "price": "कीमत",
+    "chat": "चैट",
+    "failedToMarkRead": "पढ़ा हुआ चिह्नित नहीं हो सका",
+    "failedToMarkAllRead": "सभी सूचनाएं पढ़ा हुआ नहीं हो सकीं",
+    "locationServicesDisabledTitle": "लोकेशन सेवाएं बंद हैं",
+    "locationPermissionRequiredTitle": "लोकेशन अनुमति आवश्यक",
+    "locationRequired": "लोकेशन आवश्यक",
+    "turnOnLocationServices": "कृपया अपनी डिवाइस सेटिंग्स में लोकेशन सेवाएं चालू करें और फिर से प्रयास करें।",
+    "turnOnLocationToSearch": "नजदीकी किसानों को खोजने के लिए लोकेशन चालू करें।",
+    "allowLocationPermission": "नजदीकी किसानों को खोजने के लिए लोकेशन अनुमति दें। आपको ऐप सेटिंग्स पर भेजा जाएगा।",
+    "openSettings": "सेटिंग्स खोलें",
+    "ok": "ठीक है",
+    "locationDetectFailed": "आपका लोकेशन पता नहीं चल सका। कृपया फिर से प्रयास करें।",
     "supportTeam": "सहायता टीम",
     "infoTitle": "कैसे जुड़ें",
     "infoText": "किसानों से जुड़ने के लिए हमारी सहायता टीम से संपर्क करें। हम खरीदारों और किसानों के बीच सीधे संचार को सुविधाजनक बनाने में मदद करते हैं।",
@@ -194,14 +249,33 @@
     "sms": "एसएमएस भेजें",
     "email": "ईमेल",
     "error": "त्रुटि",
+    "success": "सफलता",
+    "updated": "अपडेटेड",
     "phoneError": "फोन कॉल करने में असमर्थ",
     "smsError": "एसएमएस भेजने में असमर्थ",
     "emailError": "ईमेल भेजने में असमर्थ",
+    "offerAccepted": "प्रस्ताव स्वीकार कर लिया गया। खरीदार को सूचित कर दिया गया है।",
+    "offerRejected": "प्रस्ताव अस्वीकार कर दिया गया। खरीदार को सूचित कर दिया गया है।",
+    "failedToAcceptOffer": "प्रस्ताव स्वीकार नहीं हो सका",
+    "failedToRejectOffer": "प्रस्ताव अस्वीकार नहीं हो सका",
     "loading": "खरीदार संपर्क लोड हो रहे हैं...",
     "noBuyers": "कोई खरीदार संपर्क उपलब्ध नहीं",
     "interestedBuyers": "इच्छुक खरीदार",
     "infoTitle": "नए खरीदार अनुरोध",
     "infoText": "आपके पास खरीदार पूछताछ है! अपनी फसल की तलाश में खरीदारों से जुड़ें। नारंगी अधिसूचना बैज सक्रिय अनुरोध दिखाते हैं।",
+    "notificationsTitle": "सूचनाएं",
+    "markAllRead": "सभी को पढ़ा हुआ करें",
+    "markAsRead": "पढ़ा हुआ चिह्नित करें",
+    "noNotificationsYet": "अभी कोई सूचनाएं नहीं।",
+    "negotiationOffer": "मोलभाव प्रस्ताव",
+    "requestToBuy": "खरीद अनुरोध",
+    "quantity": "मात्रा",
+    "price": "कीमत",
+    "accept": "स्वीकारें",
+    "acceptNegotiation": "मोलभाव स्वीकारें",
+    "reject": "अस्वीकारें",
+    "failedToMarkRead": "पढ़ा हुआ चिह्नित नहीं हो सका",
+    "failedToMarkAllRead": "सभी को पढ़ा हुआ नहीं कर सके",
     "buyers": {
       "name1": "थोक बाजार दिल्ली",
       "address1": "आज़ादपुर मंडी, दिल्ली",
@@ -284,8 +358,9 @@
     }
   },
   "dashboard": {
-    "greeting": "नमस्ते किसान!",
+    "title": "कृषकसार्थी",
     "subtitle": "आपका स्मार्ट कृषि सहायक",
+    "greeting": "नमस्ते किसान!",
     "predictCrop": "फसल भविष्यवाणी",
     "predictSubtitle": "उपज की भविष्यवाणी प्राप्त करें",
     "analyzeDocument": "दस्तावेज़ विश्लेषक",
@@ -302,6 +377,15 @@
       "error": "मौसम लोड करने में असमर्थ",
       "locationError": "स्थान एक्सेस अस्वीकृत",
       "retry": "पुनः प्रयास करें",
+      "am": "पूर्वाह्न",
+      "pm": "अपराह्न",
+      "now": "अभी",
+      "morning": "सुबह",
+      "noon": "दोपहर",
+      "afternoon": "दोपहर",
+      "evening": "शाम",
+      "night": "रात",
+      "feelsLike": "जैसा महसूस होता है",
       "conditions": {
         "clear": "साफ आसमान",
         "partlyCloudy": "आंशिक बादल",
@@ -338,6 +422,25 @@
       "update4Title": "गेहूं के बाजार मूल्य में वृद्धि",
       "update4Description": "उच्च मांग के कारण गेहूं की कीमतों में 15% की वृद्धि। गेहूं किसानों के लिए अच्छी खबर।",
       "update4Region": "हरियाणा"
+    },
+    "news": {
+      "title": "कृषि समाचार",
+      "refresh": "रीफ़्रेश",
+      "loading": "ताज़ा समाचार लोड हो रहे हैं...",
+      "empty": "कोई समाचार उपलब्ध नहीं",
+      "retry": "फिर से प्रयास करें",
+      "readMore": "और पढ़ें",
+      "fullArticle": "पूरा लेख",
+      "source": "स्रोत",
+      "summary": "सारांश",
+      "footer": "ताज़ा कृषि समाचारों से अपडेट रहें",
+      "categories": {
+        "agriculture": "कृषि",
+        "weather": "मौसम",
+        "market": "बाज़ार",
+        "policy": "नीति",
+        "technology": "प्रौद्योगिकी"
+      }
     },
     "weatherData": {
       "partlyCloudy": "आंशिक बादल",
@@ -588,7 +691,12 @@
   },
   "common": {
     "unknown": "अज्ञात",
-    "back": "वापस"
+    "back": "वापस",
+    "status": {
+      "pending": "लंबित",
+      "accepted": "स्वीकृत",
+      "rejected": "अस्वीकृत"
+    }
   },
   "profile": {
     "title": "मेरी प्रोफ़ाइल",
@@ -661,8 +769,12 @@
     "voiceRecorded": "आवाज़ रिकॉर्ड की गई",
     "voiceProcessed": "आपकी आवाज़ ट्रांसक्राइब कर दी गई है। अब आप संदेश भेज सकते हैं।",
     "recording": "रिकॉर्डिंग...",
+    "processing": "ऑडियो प्रोसेस हो रहा है...",
     "error": "त्रुटि",
     "recordingError": "वॉइस रिकॉर्डिंग प्रोसेस करने में विफल",
+    "permissionDenied": "अनुमति अस्वीकृत",
+    "microphonePermission": "वॉइस इनपुट के लिए माइक्रोफोन अनुमति आवश्यक है।",
+    "info": "जानकारी",
     "permissions": {
       "title": "अनुमति आवश्यक",
       "microphone": "वॉइस इनपुट के लिए माइक्रोफोन एक्सेस आवश्यक है।"
@@ -773,6 +885,7 @@
     "tripura": "त्रिपुरा",
     "uttarPradesh": "उत्तर प्रदेश",
     "uttarakhand": "उत्तराखंड",
-    "westBengal": "पश्चिम बंगाल"
+    "westBengal": "पश्चिम बंगाल",
+    "india": "भारत"
   }
 }

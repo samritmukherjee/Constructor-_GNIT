@@ -6,17 +6,18 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Image,
+  StyleSheet,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ShoppingBag, TrendingUp, Package, MapPin, Phone, Users, Leaf } from 'lucide-react-native';
+import { TrendingUp, MapPin, Users, Leaf, Menu } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { Dropdown } from '../components/Dropdown';
-import { LANGUAGES } from '../constants/data';
+import { BuyerSideDrawer } from '../components/BuyerSideDrawer';
 import { localizeNumber } from '../utils/numberLocalization';
 
 type BuyerDashboardNavigationProp = NativeStackNavigationProp<
@@ -26,30 +27,8 @@ type BuyerDashboardNavigationProp = NativeStackNavigationProp<
 
 export const BuyerDashboardScreen = () => {
   const { t, i18n } = useTranslation();
-  const navigation = useNavigation<BuyerDashboardNavigationProp>(); const insets = useSafeAreaInsets(); const [selectedLanguage, setSelectedLanguage] = useState(i18n.language || 'en');
-
-  // Handle language change
-  const handleLanguageChange = (value: string | { label: string; value: string }) => {
-    try {
-      const valueString = typeof value === 'string' ? value : value.value;
-      const selectedLang = LANGUAGES.find((lang) => {
-        try {
-          return t(lang.labelKey) === valueString;
-        } catch {
-          return lang.value.toUpperCase() === valueString;
-        }
-      });
-      if (selectedLang) {
-        setSelectedLanguage(selectedLang.value);
-        // Save language preference (which also changes the language)
-        import('../i18n/i18n').then(({ saveLanguage }) => {
-          saveLanguage(selectedLang.value);
-        });
-      }
-    } catch (error) {
-      console.error('Language change error:', error);
-    }
-  };
+  const navigation = useNavigation<BuyerDashboardNavigationProp>(); const insets = useSafeAreaInsets();
+  const [drawerVisible, setDrawerVisible] = useState(false);
 
   const tr = (key: string, fallback: string) => {
     try {
@@ -121,278 +100,331 @@ export const BuyerDashboardScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      {/* Professional Navbar (Fixed) */}
-      <View
-        className="bg-white px-4 py-3 flex-row items-center justify-between border-b border-gray-100 shadow-sm"
-        style={{
-          paddingTop: Math.max(insets.top, 12),
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.05,
-          shadowRadius: 3,
-          elevation: 3,
-          zIndex: 10,
-        }}
-      >
-        <View className="flex-row items-center">
+    <View style={{ flex: 1 }}>
+      {/* Village Sky Gradient Background */}
+      <LinearGradient
+        colors={['#E0F2FE', '#F0F9FF', '#F0FDF4', '#FFFBEB']}
+        locations={[0, 0.3, 0.7, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      
+      {/* Decorative Background Elements */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        {/* Sun Glow */}
+        <View style={{
+          position: 'absolute',
+          top: 60,
+          right: 30,
+          width: 120,
+          height: 120,
+          borderRadius: 60,
+          backgroundColor: '#FCD34D',
+          opacity: 0.2,
+        }} />
+        {/* Cloud-like shapes */}
+        <View style={{
+          position: 'absolute',
+          top: 150,
+          left: 20,
+          width: 180,
+          height: 180,
+          borderRadius: 90,
+          backgroundColor: '#FFFFFF',
+          opacity: 0.3,
+        }} />
+        <View style={{
+          position: 'absolute',
+          bottom: 100,
+          right: 40,
+          width: 200,
+          height: 200,
+          borderRadius: 100,
+          backgroundColor: '#BBF7D0',
+          opacity: 0.15,
+        }} />
+      </View>
+
+
+
+      {/* Header with Menu */}
+      <View style={{
+        paddingTop: Math.max(insets.top, 12) + 12,
+        paddingBottom: 16,
+        paddingHorizontal: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Image
             source={require('../../public/KrishakSarthiLogoPNG.png')}
-            style={{ width: 40, height: 40, borderRadius: 8 }}
+            style={{ width: 32, height: 32, marginRight: 12 }}
             resizeMode="contain"
           />
+          <View>
+            <Text style={{ color: '#111827', fontSize: 20, fontWeight: '800' }}>
+              {tr('roleSelection.title', 'KrishakSarthi')}
+            </Text>
+            <Text style={{ color: '#6B7280', fontSize: 12, marginTop: 2 }}>
+              {tr('buyerDashboard.subtitle', 'Connecting you with fresh produce')}
+            </Text>
+          </View>
         </View>
-
         <TouchableOpacity
-          className="p-2"
+          onPress={() => setDrawerVisible(true)}
+          style={{
+            backgroundColor: '#F3F4F6',
+            borderRadius: 12,
+            padding: 10,
+          }}
+          activeOpacity={0.7}
         >
-          <Ionicons name="person-circle-outline" size={32} color="#16A34A" />
+          <Menu size={24} color="#111827" strokeWidth={2} />
         </TouchableOpacity>
       </View>
 
       <ScrollView
-        className="flex-1"
+        style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) + 24 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Greeting Section */}
-        <View className="px-6 py-6 bg-white">
-          <Text className="text-gray-500 text-sm font-medium uppercase tracking-wider">
-            {tr('buyerDashboard.greeting', 'Hello Buyer!')}
-          </Text>
-          <Text className="text-gray-900 text-3xl font-bold mt-2 mb-1 leading-tight" style={{ lineHeight: 44 }}>
-            {tr('roleSelection.title', 'KrishakSarthi')}
-          </Text>
-          <Text className="text-gray-600 text-base mt-2">
-            {tr('buyerDashboard.subtitle', 'Connecting you with fresh produce')}
-          </Text>
-        </View>
-
-        {/* Language Selector */}
-        <View className="px-6 mt-4">
-          <Dropdown
-            label={tr('buyerDashboard.language', 'Language')}
-            placeholder={tr('buyerDashboard.languagePlaceholder', 'Select language')}
-            value={
-              LANGUAGES.find((l) => l.value === selectedLanguage)
-                ? (() => {
-                  try {
-                    const lang = LANGUAGES.find((l) => l.value === selectedLanguage);
-                    return lang ? t(lang.labelKey) : '';
-                  } catch {
-                    return '';
-                  }
-                })()
-                : ''
-            }
-            options={LANGUAGES.map((lang) => {
-              try {
-                return t(lang.labelKey);
-              } catch {
-                return lang.value.toUpperCase();
-              }
-            })}
-            onSelect={handleLanguageChange}
-          />
-        </View>
 
         {/* Market Summary */}
-        <View className="px-6 mt-6">
-          <Text className="text-gray-900 text-xl font-bold mb-3">
+        <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+          <Text style={{ fontSize: 20, fontWeight: '800', color: '#111827', marginBottom: 16 }}>
             {tr('buyerDashboard.summary.title', 'Market Summary')}
           </Text>
-          <View
-            className="bg-white rounded-xl p-5 shadow-sm"
+          <LinearGradient
+            colors={['#FFFFFF', '#F8FAFC']}
             style={{
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.05,
-              shadowRadius: 2,
-              elevation: 2,
+              borderRadius: 20,
+              padding: 20,
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
+              shadowColor: '#3B82F6',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 12,
+              elevation: 4,
             }}
           >
-            <View className="flex-row items-center mb-5">
-              <View className="bg-green-100 rounded-full w-12 h-12 items-center justify-center mr-4">
-                <Users size={24} color="#16A34A" strokeWidth={2} />
-              </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+              <LinearGradient
+                colors={['#DBEAFE', '#BFDBFE']}
+                style={{
+                  borderRadius: 16,
+                  width: 56,
+                  height: 56,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 16,
+                }}
+              >
+                <Users size={28} color="#3B82F6" strokeWidth={2.5} />
+              </LinearGradient>
               <View>
-                <Text className="text-gray-600 text-sm">
+                <Text style={{ color: '#6B7280', fontSize: 13, fontWeight: '600' }}>
                   {tr('buyerDashboard.summary.activeSellers', 'Active Sellers')}
                 </Text>
-                <Text className="text-gray-900 text-lg font-semibold">
+                <Text style={{ color: '#111827', fontSize: 22, fontWeight: '800', marginTop: 2 }}>
                   {localizeNumber(MARKET_SUMMARY.activeSellers, i18n.language)}
                 </Text>
               </View>
             </View>
 
-            <View className="flex-row items-center mb-5">
-              <View className="bg-blue-100 rounded-full w-12 h-12 items-center justify-center mr-4">
-                <Leaf size={24} color="#3B82F6" strokeWidth={2} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-gray-600 text-sm">
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+              <LinearGradient
+                colors={['#D1FAE5', '#A7F3D0']}
+                style={{
+                  borderRadius: 16,
+                  width: 56,
+                  height: 56,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 16,
+                }}
+              >
+                <Leaf size={28} color="#10B981" strokeWidth={2.5} />
+              </LinearGradient>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#6B7280', fontSize: 13, fontWeight: '600' }}>
                   {tr('buyerDashboard.summary.availableCrops', 'Available Crops')}
                 </Text>
-                <Text className="text-gray-900 text-base font-semibold">
+                <Text style={{ color: '#111827', fontSize: 16, fontWeight: '700', marginTop: 2 }}>
                   {MARKET_SUMMARY.availableCrops}
                 </Text>
               </View>
             </View>
 
-            <View className="flex-row items-center">
-              <View className="bg-yellow-100 rounded-full w-12 h-12 items-center justify-center mr-4">
-                <TrendingUp size={24} color="#EAB308" strokeWidth={2} />
-              </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <LinearGradient
+                colors={['#FEF3C7', '#FDE68A']}
+                style={{
+                  borderRadius: 16,
+                  width: 56,
+                  height: 56,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 16,
+                }}
+              >
+                <TrendingUp size={28} color="#F59E0B" strokeWidth={2.5} />
+              </LinearGradient>
               <View>
-                <Text className="text-gray-600 text-sm">
+                <Text style={{ color: '#6B7280', fontSize: 13, fontWeight: '600' }}>
                   {tr('buyerDashboard.summary.averagePrice', 'Average Price')}
                 </Text>
-                <Text className="text-gray-900 text-lg font-semibold">
+                <Text style={{ color: '#111827', fontSize: 22, fontWeight: '800', marginTop: 2 }}>
                   ₹{localizeNumber(MARKET_SUMMARY.averagePrice, i18n.language)}/
                   {tr('buyerDashboard.summary.perKg', 'kg')}
                 </Text>
               </View>
             </View>
-          </View>
-        </View>
-
-        {/* Quick Actions */}
-        <View className="px-6 mt-6">
-          <Text className="text-gray-900 text-xl font-bold mb-3">
-            {tr('buyerDashboard.quickActions.title', 'Quick Actions')}
-          </Text>
-          <View className="flex-row justify-between">
-            <TouchableOpacity
-              onPress={() => navigation.navigate('ViewAllCrops')}
-              className="bg-white rounded-xl p-4 flex-1 mr-2 shadow-sm items-center"
-              style={{
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.05,
-                shadowRadius: 2,
-                elevation: 2,
-              }}
-              activeOpacity={0.7}
-            >
-              <View className="bg-green-100 rounded-full w-12 h-12 items-center justify-center mb-2">
-                <Package size={24} color="#16A34A" strokeWidth={2} />
-              </View>
-              <Text className="text-gray-900 text-sm font-semibold text-center">
-                {tr('buyerDashboard.quickActions.viewAllCrops', 'View All Crops')}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => navigation.navigate('ContactFarmer')}
-              className="bg-white rounded-xl p-4 flex-1 ml-2 shadow-sm items-center"
-              style={{
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.05,
-                shadowRadius: 2,
-                elevation: 2,
-              }}
-              activeOpacity={0.7}
-            >
-              <View className="bg-blue-100 rounded-full w-12 h-12 items-center justify-center mb-2">
-                <Phone size={24} color="#3B82F6" strokeWidth={2} />
-              </View>
-              <Text className="text-gray-900 text-sm font-semibold text-center">
-                {tr('buyerDashboard.quickActions.contactFarmer', 'Contact Farmer')}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          </LinearGradient>
         </View>
 
         {/* Available Crops */}
-        <View className="px-6 mt-6">
-          <Text className="text-gray-900 text-xl font-bold mb-3">
+        <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+          <Text style={{ fontSize: 20, fontWeight: '800', color: '#111827', marginBottom: 16 }}>
             {tr('buyerDashboard.availableCrops.title', 'Available Crops')}
           </Text>
-          <View className="flex-row flex-wrap justify-between">
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
             {AVAILABLE_CROPS.map((crop, index) => {
               return (
-                <View
+                <LinearGradient
                   key={crop.id}
-                  className="bg-white rounded-xl p-4 shadow-sm mb-4"
+                  colors={['#FFFFFF', '#F8FAFC']}
                   style={{
                     width: '48%',
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 2,
-                    elevation: 2,
+                    borderRadius: 18,
+                    padding: 16,
+                    marginBottom: 16,
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                    shadowColor: '#3B82F6',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.08,
+                    shadowRadius: 8,
+                    elevation: 3,
                   }}
                 >
-                  <View className="items-center mb-3">
-                    <Text className="text-4xl mb-2">{crop.icon}</Text>
-                    <Text className="text-gray-900 text-base font-bold">
+                  <View style={{ alignItems: 'center', marginBottom: 12 }}>
+                    <View style={{
+                      backgroundColor: '#F0F9FF',
+                      borderRadius: 16,
+                      width: 64,
+                      height: 64,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: 10,
+                    }}>
+                      <Text style={{ fontSize: 36 }}>{crop.icon}</Text>
+                    </View>
+                    <Text style={{ color: '#111827', fontSize: 16, fontWeight: '800' }}>
                       {crop.name}
                     </Text>
                   </View>
-                  <View className="border-t border-gray-100 pt-3">
-                    <View className="flex-row items-center justify-between mb-2">
-                      <Text className="text-gray-600 text-xs">
+                  <View style={{
+                    borderTopWidth: 1,
+                    borderTopColor: '#F3F4F6',
+                    paddingTop: 12,
+                  }}>
+                    <View style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 8,
+                    }}>
+                      <Text style={{ color: '#6B7280', fontSize: 12, fontWeight: '600' }}>
                         {tr('buyerDashboard.availableCrops.price', 'Price')}
                       </Text>
-                      <Text className="text-green-600 text-sm font-bold">
+                      <Text style={{ color: '#10B981', fontSize: 15, fontWeight: '800' }}>
                         ₹{localizeNumber(crop.price, i18n.language)}/
                         {tr('buyerDashboard.summary.perKg', 'kg')}
                       </Text>
                     </View>
-                    <View className="flex-row items-center">
-                      <MapPin size={12} color="#9CA3AF" strokeWidth={2} />
-                      <Text className="text-gray-500 text-xs ml-1" numberOfLines={1}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <MapPin size={13} color="#9CA3AF" strokeWidth={2} />
+                      <Text style={{
+                        color: '#6B7280',
+                        fontSize: 12,
+                        marginLeft: 4,
+                        fontWeight: '600',
+                        flex: 1,
+                      }} numberOfLines={1}>
                         {crop.location}
                       </Text>
                     </View>
                   </View>
-                </View>
+                </LinearGradient>
               );
             })}
           </View>
         </View>
 
         {/* Market Feed */}
-        <View className="px-6 mt-6">
-          <Text className="text-gray-900 text-xl font-bold mb-3">
+        <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+          <Text style={{ fontSize: 20, fontWeight: '800', color: '#111827', marginBottom: 16 }}>
             {tr('buyerDashboard.marketFeed.title', 'Market Updates')}
           </Text>
           <View>
             {MARKET_UPDATES.map((update, index) => {
               return (
-                <View
+                <LinearGradient
                   key={update.id}
-                  className="bg-white rounded-xl p-4 shadow-sm"
+                  colors={['#FFFFFF', '#F8FAFC']}
                   style={{
+                    borderRadius: 18,
+                    padding: 18,
                     marginBottom: index < MARKET_UPDATES.length - 1 ? 16 : 0,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 2,
-                    elevation: 2,
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                    shadowColor: '#10B981',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.08,
+                    shadowRadius: 8,
+                    elevation: 3,
                   }}
                 >
-                  <View className="flex-row items-start mb-2">
-                    <View className="bg-green-600/10 rounded-lg px-3 py-1 flex-row items-center">
-                      <MapPin size={12} color="#16A34A" strokeWidth={2} />
-                      <Text className="text-green-600 text-xs font-semibold ml-1">
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                    <LinearGradient
+                      colors={['#D1FAE5', '#A7F3D0']}
+                      style={{
+                        borderRadius: 12,
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <MapPin size={13} color="#10B981" strokeWidth={2.5} />
+                      <Text style={{ color: '#10B981', fontSize: 12, fontWeight: '700', marginLeft: 4 }}>
                         {update.region}
                       </Text>
-                    </View>
+                    </LinearGradient>
                   </View>
-                  <Text className="text-gray-900 text-base font-bold mb-2">
+                  <Text style={{ color: '#111827', fontSize: 16, fontWeight: '800', marginBottom: 8 }}>
                     {update.title}
                   </Text>
-                  <Text className="text-gray-600 text-sm leading-5">
+                  <Text style={{ color: '#6B7280', fontSize: 14, lineHeight: 20 }}>
                     {update.description}
                   </Text>
-                </View>
+                </LinearGradient>
               );
             })}
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+
+      {/* Side Drawer */}
+      <BuyerSideDrawer
+        visible={drawerVisible}
+        onClose={() => setDrawerVisible(false)}
+        onNavigate={(screen) => {
+          setDrawerVisible(false);
+          navigation.navigate(screen);
+        }}
+      />
+    </View>
   );
 };

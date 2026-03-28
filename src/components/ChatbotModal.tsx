@@ -14,8 +14,10 @@ import {
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
+import { Audio } from 'expo-av';
 import { useTranslation } from 'react-i18next';
 import { FormattedText } from './FormattedText';
+import { transcribeAudio } from '../services/gemini';
 
 interface ChatMessage {
   id: string;
@@ -30,7 +32,7 @@ interface ChatbotModalProps {
 }
 
 export const ChatbotModal: React.FC<ChatbotModalProps> = ({ visible, onClose }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const scrollViewRef = useRef<ScrollView>(null);
   const isMountedRef = useRef(true);
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -46,6 +48,7 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ visible, onClose }) 
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const recordingRef = useRef<Audio.Recording | null>(null);
 
   // Pulsing animation for recording indicator
   useEffect(() => {
@@ -86,16 +89,115 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ visible, onClose }) 
   }, [messages, isTyping]);
 
   const startRecording = async () => {
-    // Voice input temporarily disabled - please type your message
-    Alert.alert(
-      t('chatbot.info') || 'Info',
-      'Voice input is temporarily unavailable. Please type your message instead.'
-    );
+    try {
+      // Request permissions
+      const { granted } = await Audio.requestPermissionsAsync();
+      if (!granted) {
+        Alert.alert(
+          t('chatbot.permissionDenied') || 'Permission Denied',
+          t('chatbot.microphonePermission') || 'Microphone permission is required for voice input.'
+        );
+        return;
+      }
+
+      // Configure audio mode
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      // Start recording
+      const recording = new Audio.Recording();
+      await recording.prepareToRecordAsync({
+        isMeteringEnabled: true,
+        android: {
+          extension: '.m4a',
+          outputFormat: 2,
+          audioEncoder: 3,
+          sampleRate: 44100,
+          numberOfChannels: 2,
+          bitRate: 128000,
+        },
+        ios: {
+          extension: '.m4a',
+          outputFormat: 'mpeg4AAC',
+          audioQuality: 127,
+          sampleRate: 44100,
+          numberOfChannels: 2,
+          bitRate: 128000,
+          linearPCMBitDepth: 16,
+          linearPCMIsBigEndian: false,
+          linearPCMIsFloat: false,
+        },
+        web: {
+          mimeType: 'audio/webm',
+          bitsPerSecond: 128000,
+        },
+      });
+
+      await recording.startAsync();
+      recordingRef.current = recording;
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      Alert.alert(
+        t('chatbot.error') || 'Error',
+        'Failed to start voice recording. Please try again.'
+      );
+    }
   };
 
   const stopRecording = async () => {
-    // Voice input disabled
-    setIsRecording(false);
+    try {
+      if (!recordingRef.current) {
+        return;
+      }
+
+      setIsRecording(false);
+      await recordingRef.current.stopAndUnloadAsync();
+      const uri = recordingRef.current.getURI();
+      recordingRef.current = null;
+
+      if (!uri) {
+        Alert.alert(t('chatbot.error') || 'Error', 'No audio recorded');
+        return;
+      }
+
+      // Show processing indicator
+      setInputText(t('chatbot.processing') || 'Processing audio...');
+
+      // Detect language
+      const currentLanguage = i18n.language || 'en';
+
+      // Send audio file to Gemini API for transcription
+      try {
+        console.log('Sending audio to Gemini API for transcription...');
+        
+        const transcribedText = await transcribeAudio({
+          audioUri: uri,
+          language: currentLanguage,
+        });
+        
+        console.log('Transcription successful:', transcribedText);
+        
+        if (transcribedText && transcribedText.trim()) {
+          setInputText(transcribedText);
+        } else {
+          throw new Error('No transcription received');
+        }
+      } catch (apiError: any) {
+        console.error('Speech-to-text API error:', apiError);
+        setInputText('');
+        Alert.alert(
+          t('chatbot.error') || 'Error',
+          apiError.message || 'Voice recognition failed. Please try again or type your message.'
+        );
+      }
+    } catch (error) {
+      console.error('Error stopping recording:', error);
+      setIsRecording(false);
+      setInputText('');
+    }
   };
 
   const speakText = async (text: string) => {

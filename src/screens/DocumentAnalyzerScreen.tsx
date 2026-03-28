@@ -112,6 +112,8 @@ export const DocumentAnalyzerScreen = () => {
           'image/jpeg',
           'image/jpg',
           'image/png',
+          'image/webp',
+          'application/pdf',
         ],
         copyToCacheDirectory: true,
       });

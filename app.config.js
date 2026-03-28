@@ -16,7 +16,11 @@ module.exports = ({ config }) => {
     extra: {
       ...(config.extra ?? {}),
       GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+      GEMINI_API_KEY_1: process.env.GEMINI_API_KEY_1,
+      GEMINI_API_KEY_2: process.env.GEMINI_API_KEY_2,
+      GEMINI_API_KEY_3: process.env.GEMINI_API_KEY_3,
       HF_API_KEY: process.env.HF_API_KEY,
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     },
   };
 };

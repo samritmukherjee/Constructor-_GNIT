@@ -3,10 +3,7 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
-  Platform,
   Animated,
-  Image,
   Pressable,
   StyleSheet,
 } from 'react-native';
@@ -15,27 +12,25 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Sprout, ShoppingBasket, LogIn, UserPlus } from 'lucide-react-native';
-import { Dropdown } from '../components/Dropdown';
-import { LANGUAGES } from '../constants/data';
+import { Sprout, ShoppingBasket, ArrowLeft } from 'lucide-react-native';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { TouchableOpacity } from 'react-native';
 
-type RoleSelectionNavigationProp = NativeStackNavigationProp<
+type RoleChoiceNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
-  'RoleSelection'
+  'RoleChoice'
 >;
 
-export const RoleSelectionScreen = () => {
+export const RoleChoiceScreen = () => {
   const { t, i18n } = useTranslation();
-  const navigation = useNavigation<RoleSelectionNavigationProp>();
-  const [selectedLanguage, setSelectedLanguage] = useState(i18n.language || 'en');
+  const navigation = useNavigation<RoleChoiceNavigationProp>();
   const insets = useSafeAreaInsets();
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const [signInScale] = useState(new Animated.Value(1));
-  const [signUpScale] = useState(new Animated.Value(1));
+  const [farmerScale] = useState(new Animated.Value(1));
+  const [buyerScale] = useState(new Animated.Value(1));
 
   const tr = (key: string, fallback: string) => {
     try {
@@ -62,22 +57,8 @@ export const RoleSelectionScreen = () => {
     ]).start();
   }, []);
 
-  // Change language when selected
-  useEffect(() => {
-    if (selectedLanguage) {
-      // Save language preference (which also changes the language)
-      import('../i18n/i18n').then(({ saveLanguage }) => {
-        saveLanguage(selectedLanguage);
-      });
-    }
-  }, [selectedLanguage]);
-
-  const handleSignIn = () => {
-    navigation.navigate('SignIn');
-  };
-
-  const handleSignUp = () => {
-    navigation.navigate('RoleChoice');
+  const handleRoleSelection = (role: 'farmer' | 'buyer') => {
+    navigation.navigate('SignUp', { role });
   };
 
   const handlePressIn = (scale: Animated.Value) => {
@@ -129,13 +110,42 @@ export const RoleSelectionScreen = () => {
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: 24,
-          paddingTop: Math.max(insets.top, Platform.OS === 'ios' ? 50 : 30) + 20,
+          paddingTop: Math.max(insets.top, 50) + 20,
           paddingBottom: Math.max(insets.bottom, 24) + 20,
           justifyContent: 'center',
           minHeight: '100%'
         }}
         showsVerticalScrollIndicator={false}
       >
+        {/* Back Button */}
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          className="mb-8"
+          style={{
+            alignSelf: 'flex-start',
+            backgroundColor: '#D1F4E0',
+            paddingHorizontal: 18,
+            paddingVertical: 10,
+            borderRadius: 24,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            shadowColor: '#16A34A',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.12,
+            shadowRadius: 5,
+            elevation: 3,
+          }}
+        >
+          <ArrowLeft size={20} color="#16A34A" strokeWidth={2.5} />
+          <Text 
+            className="text-green-600 font-semibold" 
+            style={{ fontSize: 15, lineHeight: 20, letterSpacing: 0.3 }}
+          >
+            {tr('common.back', 'Back')}
+          </Text>
+        </TouchableOpacity>
+
         {/* Header Section */}
         <View className="items-center" style={{ marginBottom: 40 }}>
           <Animated.View
@@ -145,43 +155,18 @@ export const RoleSelectionScreen = () => {
               alignItems: 'center',
             }}
           >
-            {/* Logo with Enhanced Shadow and Glow */}
-            <View style={{
-              shadowColor: '#16A34A',
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.25,
-              shadowRadius: 20,
-              elevation: 8,
-              borderRadius: 30,
-              marginBottom: 24,
-              backgroundColor: 'white',
-              padding: 8,
-            }}>
-              <Image
-                source={require('../../public/KrishakSarthiLogoBG.jpg')}
-                style={{ 
-                  width: 110, 
-                  height: 110, 
-                  borderRadius: 22,
-                }}
-                resizeMode="contain"
-              />
-            </View>
-            
-            {/* Title with Better Typography */}
+            {/* Title */}
             <View style={{ alignItems: 'center', marginBottom: 10 }}>
               <Text
                 className="font-bold text-gray-900 text-center"
                 style={{
-                  fontSize: 40,
-                  lineHeight: 56,
-                  includeFontPadding: false,
+                  fontSize: 32,
+                  lineHeight: 42,
                   letterSpacing: -0.5,
                   paddingVertical: 8,
-                  paddingHorizontal: 4,
                 }}
               >
-                {tr('roleSelection.title', 'KrishakSarthi')}
+                {tr('roleChoice.title', 'Choose Your Role')}
               </Text>
               <View style={{
                 height: 4,
@@ -202,67 +187,19 @@ export const RoleSelectionScreen = () => {
                 marginTop: 8,
               }}
             >
-              {tr('roleSelection.subtitle', 'Empowering Agriculture, One Step at a Time')}
+              {tr('roleChoice.subtitle', 'Select how you want to use KrishakSarthi')}
             </Text>
           </Animated.View>
         </View>
 
-        {/* Language Selection - Clean & Simple */}
-        <View style={{ 
-          marginBottom: 32,
-          backgroundColor: 'white',
-          borderRadius: 16,
-          padding: 20,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.06,
-          shadowRadius: 12,
-          elevation: 2,
-        }}>
-          <Text 
-            style={{ 
-              fontSize: 14,
-              fontWeight: '600',
-              color: '#374151',
-              marginBottom: 12,
-              letterSpacing: 0.3,
-            }}
-          >
-            {tr('roleSelection.language', 'Language')}
-          </Text>
-
-          <Dropdown
-            label=""
-            placeholder={tr('roleSelection.languagePlaceholder', 'Select language')}
-            value={
-              LANGUAGES.find((l) => l.value === selectedLanguage)
-                ? t(
-                  LANGUAGES.find(
-                    (l) => l.value === selectedLanguage
-                  )!.labelKey
-                )
-                : ''
-            }
-            options={LANGUAGES.map((lang) => t(lang.labelKey))}
-            onSelect={(value) => {
-              const selectedLang = LANGUAGES.find(
-                (lang) => t(lang.labelKey) === value
-              );
-              if (selectedLang) {
-                setSelectedLanguage(selectedLang.value);
-              }
-            }}
-          />
-        </View>
-
-        {/* Action Cards - Sign In / Sign Up */}
+        {/* Role Cards */}
         <View style={{ gap: 20, marginBottom: 24 }}>
-          {/* Sign In Card */}
-          <Animated.View style={{ transform: [{ scale: signInScale }] }}>
+          {/* Farmer Card */}
+          <Animated.View style={{ transform: [{ scale: farmerScale }] }}>
             <Pressable
-              onPress={handleSignIn}
-              onPressIn={() => handlePressIn(signInScale)}
-              onPressOut={() => handlePressOut(signInScale)}
+              onPress={() => handleRoleSelection('farmer')}
+              onPressIn={() => handlePressIn(farmerScale)}
+              onPressOut={() => handlePressOut(farmerScale)}
             >
               <LinearGradient
                 colors={['#FFFFFF', '#F0FDF4']}
@@ -283,7 +220,6 @@ export const RoleSelectionScreen = () => {
                   alignItems: 'center',
                 }}
               >
-                {/* Icon Container */}
                 <LinearGradient
                   colors={['#22C55E', '#16A34A']}
                   start={{ x: 0, y: 0 }}
@@ -302,43 +238,34 @@ export const RoleSelectionScreen = () => {
                     elevation: 6,
                   }}
                 >
-                  <LogIn size={36} color="#FFFFFF" strokeWidth={2.5} />
+                  <Sprout size={36} color="#FFFFFF" strokeWidth={2.5} />
                 </LinearGradient>
                 
-                {/* Text Content */}
                 <View style={{ flex: 1 }}>
                   <Text 
                     className="font-bold text-gray-900"
-                    style={{ 
-                      fontSize: 22,
-                      lineHeight: 28,
-                      marginBottom: 6,
-                      letterSpacing: 0.3,
-                    }}
+                    style={{ fontSize: 22, lineHeight: 28, marginBottom: 6, letterSpacing: 0.3 }}
                   >
-                    {tr('landing.signIn', 'Sign In')}
+                    {tr('roleChoice.farmer', 'Farmer')}
                   </Text>
                   
                   <Text 
                     className="text-gray-600"
-                    style={{ 
-                      fontSize: 13,
-                      lineHeight: 19,
-                    }}
+                    style={{ fontSize: 13, lineHeight: 19 }}
                   >
-                    {tr('landing.signInDescription', 'Already have an account? Sign in here')}
+                    {tr('roleChoice.farmerDescription', 'Access farming tools, predictions, and resources')}
                   </Text>
                 </View>
               </LinearGradient>
             </Pressable>
           </Animated.View>
 
-          {/* Sign Up Card */}
-          <Animated.View style={{ transform: [{ scale: signUpScale }] }}>
+          {/* Buyer Card */}
+          <Animated.View style={{ transform: [{ scale: buyerScale }] }}>
             <Pressable
-              onPress={handleSignUp}
-              onPressIn={() => handlePressIn(signUpScale)}
-              onPressOut={() => handlePressOut(signUpScale)}
+              onPress={() => handleRoleSelection('buyer')}
+              onPressIn={() => handlePressIn(buyerScale)}
+              onPressOut={() => handlePressOut(buyerScale)}
             >
               <LinearGradient
                 colors={['#FFFFFF', '#ECFDF5']}
@@ -359,7 +286,6 @@ export const RoleSelectionScreen = () => {
                   alignItems: 'center',
                 }}
               >
-                {/* Icon Container */}
                 <LinearGradient
                   colors={['#10B981', '#059669']}
                   start={{ x: 0, y: 0 }}
@@ -378,61 +304,27 @@ export const RoleSelectionScreen = () => {
                     elevation: 6,
                   }}
                 >
-                  <UserPlus size={36} color="#FFFFFF" strokeWidth={2.5} />
+                  <ShoppingBasket size={36} color="#FFFFFF" strokeWidth={2.5} />
                 </LinearGradient>
                 
-                {/* Text Content */}
                 <View style={{ flex: 1 }}>
                   <Text 
                     className="font-bold text-gray-900"
-                    style={{ 
-                      fontSize: 22,
-                      lineHeight: 28,
-                      marginBottom: 6,
-                      letterSpacing: 0.3,
-                    }}
+                    style={{ fontSize: 22, lineHeight: 28, marginBottom: 6, letterSpacing: 0.3 }}
                   >
-                    {tr('landing.signUp', 'Sign Up')}
+                    {tr('roleChoice.buyer', 'Buyer')}
                   </Text>
                   
                   <Text 
                     className="text-gray-600"
-                    style={{ 
-                      fontSize: 13,
-                      lineHeight: 19,
-                    }}
+                    style={{ fontSize: 13, lineHeight: 19 }}
                   >
-                    {tr('landing.signUpDescription', 'Create a new account to get started')}
+                    {tr('roleChoice.buyerDescription', 'Connect with farmers and purchase agricultural products')}
                   </Text>
                 </View>
               </LinearGradient>
             </Pressable>
           </Animated.View>
-        </View>
-
-        {/* Footer Note */}
-        <View style={{ marginTop: 20, alignItems: 'center' }}>
-          <View style={{
-            backgroundColor: 'white',
-            paddingHorizontal: 20,
-            paddingVertical: 12,
-            borderRadius: 20,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.04,
-            shadowRadius: 8,
-            elevation: 1,
-          }}>
-            <Text 
-              className="text-gray-400 text-center"
-              style={{ 
-                fontSize: 13,
-                lineHeight: 18,
-              }}
-            >
-              {tr('landing.footerNote', 'Welcome to KrishakSarthi')}
-            </Text>
-          </View>
         </View>
       </ScrollView>
     </View>

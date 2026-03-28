@@ -8,6 +8,7 @@ import {
   Switch,
   ActivityIndicator,
   Alert,
+  StyleSheet,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,7 +18,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
-import { User, Mail, Phone, MapPin, Globe, Sprout, Bell, ArrowLeft } from 'lucide-react-native';
+import { User, Mail, Phone, MapPin, Globe, Sprout, Bell, ArrowLeft, ShoppingBag } from 'lucide-react-native';
 import { CustomInput } from '../components/CustomInput';
 import { Dropdown } from '../components/Dropdown';
 import { INDIAN_STATES, FARMER_TYPES, LANGUAGES, INDIAN_DISTRICTS } from '../constants/data';
@@ -49,6 +50,9 @@ interface ProfileData {
   landSize: string;
   notificationsEnabled: boolean;
   profilePhoto: string | null;
+  userType?: 'farmer' | 'buyer'; // Add user type
+  companyName?: string; // For buyers
+  businessType?: string; // For buyers
 }
 
 export const ProfileScreen = () => {
@@ -70,6 +74,9 @@ export const ProfileScreen = () => {
     landSize: '',
     notificationsEnabled: true,
     profilePhoto: null,
+    userType: 'farmer', // default
+    companyName: '',
+    businessType: '',
   });
 
   const [profileData, setProfileData] = useState<ProfileData>(initialData);
@@ -92,14 +99,14 @@ export const ProfileScreen = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChange(async (user) => {
       if (!user) {
-        navigation.navigate('SignIn');
+        navigation.navigate('SignIn', {});
         return;
       }
 
       setIsProfileLoading(true);
       try {
         const profileResult = await fetchCurrentUserProfile();
-        const stored = profileResult.success ? profileResult.profile : {};
+        const stored: any = profileResult.success ? profileResult.profile : {};
 
         const next: ProfileData = {
           fullName: (stored.fullName as string) || user.displayName || '',
@@ -110,6 +117,9 @@ export const ProfileScreen = () => {
           preferredLanguage: (stored.preferredLanguage as string) || i18n.language,
           farmerType: (stored.farmerType as string) || '',
           landSize: (stored.landSize as string) || '',
+          userType: (stored.userType as 'farmer' | 'buyer') || 'farmer',
+          companyName: (stored.companyName as string) || '',
+          businessType: (stored.businessType as string) || '',
           notificationsEnabled:
             typeof stored.notificationsEnabled === 'boolean'
               ? stored.notificationsEnabled
@@ -263,7 +273,7 @@ export const ProfileScreen = () => {
               Alert.alert(tr('profile.error.title', 'Error'), result.message);
               return;
             }
-            navigation.navigate('SignIn');
+            navigation.navigate('SignIn', {});
           },
         },
       ]
@@ -271,33 +281,77 @@ export const ProfileScreen = () => {
   };
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: '#F9FAFB' }}
-      contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) + 24 }}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Header with Gradient */}
+    <View style={{ flex: 1 }}>
+      {/* Village Sky Gradient Background */}
       <LinearGradient
-        colors={['#22C55E', '#16A34A', '#15803D']}
-        style={{
-          paddingTop: insets.top + 16,
-          paddingBottom: 64,
-          paddingHorizontal: 24,
-        }}
+        colors={['#E0F2FE', '#F0F9FF', '#F0FDF4', '#FFFBEB']}
+        locations={[0, 0.3, 0.7, 1]}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      />
+      
+      {/* Decorative Background Elements */}
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} pointerEvents="none">
+        {/* Sun Glow */}
+        <View style={{
+          position: 'absolute',
+          top: 60,
+          right: 30,
+          width: 120,
+          height: 120,
+          borderRadius: 60,
+          backgroundColor: '#FCD34D',
+          opacity: 0.2,
+        }} />
+        {/* Cloud-like shapes */}
+        <View style={{
+          position: 'absolute',
+          top: 150,
+          left: 20,
+          width: 180,
+          height: 180,
+          borderRadius: 90,
+          backgroundColor: '#FFFFFF',
+          opacity: 0.3,
+        }} />
+        <View style={{
+          position: 'absolute',
+          bottom: 100,
+          right: 40,
+          width: 200,
+          height: 200,
+          borderRadius: 100,
+          backgroundColor: '#BBF7D0',
+          opacity: 0.15,
+        }} />
+      </View>
+
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) + 24 }}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Back Button */}
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.7}
+        {/* Header with Gradient */}
+        <LinearGradient
+          colors={profileData.userType === 'buyer' ? ['#3B82F6', '#2563EB', '#1D4ED8'] : ['#22C55E', '#16A34A', '#15803D']}
           style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            paddingHorizontal: 18,
-            paddingVertical: 10,
-            borderRadius: 24,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 8,
-            shadowColor: '#000',
+            paddingTop: insets.top + 20,
+            paddingBottom: 80,
+            paddingHorizontal: 20,
+          }}
+        >
+          {/* Back Button */}
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              paddingHorizontal: 18,
+              paddingVertical: 10,
+              borderRadius: 24,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.12,
             shadowRadius: 5,
@@ -306,10 +360,10 @@ export const ProfileScreen = () => {
             marginBottom: 20,
           }}
         >
-          <ArrowLeft size={20} color="#16A34A" strokeWidth={2.5} />
+          <ArrowLeft size={20} color={profileData.userType === 'buyer' ? '#3B82F6' : '#16A34A'} strokeWidth={2.5} />
           <Text 
             style={{ 
-              color: '#16A34A',
+              color: profileData.userType === 'buyer' ? '#3B82F6' : '#16A34A',
               fontWeight: '600',
               fontSize: 15, 
               lineHeight: 20, 
@@ -328,27 +382,27 @@ export const ProfileScreen = () => {
         </Text>
       </LinearGradient>
 
-      <View style={{ paddingHorizontal: 20 }}>
+      <View style={{ paddingHorizontal: 16 }}>
         {isProfileLoading ? (
           <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-            <ActivityIndicator size="large" color="#22C55E" />
+            <ActivityIndicator size="large" color={profileData.userType === 'buyer' ? '#3B82F6' : '#22C55E'} />
           </View>
         ) : (
           <>
             {/* Profile Card - Unique & Stylish */}
             <View style={{
-              marginTop: -60,
+              marginTop: -70,
               backgroundColor: '#FFFFFF',
               borderRadius: 24,
-              padding: 32,
-              shadowColor: '#22C55E',
+              padding: 24,
+              shadowColor: profileData.userType === 'buyer' ? '#3B82F6' : '#22C55E',
               shadowOffset: { width: 0, height: 8 },
               shadowOpacity: 0.15,
               shadowRadius: 20,
               elevation: 8,
-              marginBottom: 24,
+              marginBottom: 20,
               borderWidth: 1,
-              borderColor: 'rgba(34, 197, 94, 0.1)',
+              borderColor: profileData.userType === 'buyer' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(34, 197, 94, 0.1)',
             }}>
               <View style={{ alignItems: 'center' }}>
                 <TouchableOpacity
@@ -361,13 +415,13 @@ export const ProfileScreen = () => {
                     width: 150,
                     height: 150,
                     borderRadius: 75,
-                    backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                    backgroundColor: profileData.userType === 'buyer' ? 'rgba(59, 130, 246, 0.08)' : 'rgba(34, 197, 94, 0.08)',
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: 8,
                   }}>
                     <LinearGradient
-                      colors={['#22C55E', '#16A34A', '#15803D']}
+                      colors={profileData.userType === 'buyer' ? ['#3B82F6', '#2563EB', '#1D4ED8'] : ['#22C55E', '#16A34A', '#15803D']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                       style={{
@@ -404,7 +458,7 @@ export const ProfileScreen = () => {
                   
                   {/* Camera button with pulse effect */}
                   <LinearGradient
-                    colors={['#22C55E', '#16A34A']}
+                    colors={profileData.userType === 'buyer' ? ['#3B82F6', '#2563EB'] : ['#22C55E', '#16A34A']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={{
@@ -415,7 +469,7 @@ export const ProfileScreen = () => {
                       padding: 12,
                       borderWidth: 4,
                       borderColor: '#FFFFFF',
-                      shadowColor: '#22C55E',
+                      shadowColor: profileData.userType === 'buyer' ? '#3B82F6' : '#22C55E',
                       shadowOffset: { width: 0, height: 4 },
                       shadowOpacity: 0.3,
                       shadowRadius: 8,
@@ -433,18 +487,18 @@ export const ProfileScreen = () => {
                   gap: 6,
                   paddingHorizontal: 16,
                   paddingVertical: 8,
-                  backgroundColor: 'rgba(34, 197, 94, 0.06)',
+                  backgroundColor: profileData.userType === 'buyer' ? 'rgba(59, 130, 246, 0.06)' : 'rgba(34, 197, 94, 0.06)',
                   borderRadius: 20,
                 }}>
                   <View style={{
                     width: 6,
                     height: 6,
                     borderRadius: 3,
-                    backgroundColor: '#22C55E',
+                    backgroundColor: profileData.userType === 'buyer' ? '#3B82F6' : '#22C55E',
                   }} />
                   <Text style={{ 
                     fontSize: 13, 
-                    color: '#16A34A',
+                    color: profileData.userType === 'buyer' ? '#2563EB' : '#16A34A',
                     fontWeight: '600',
                     letterSpacing: 0.3,
                   }}>
@@ -455,25 +509,29 @@ export const ProfileScreen = () => {
             </View>
 
             {/* Basic Information Section */}
-            <View style={{ marginBottom: 20 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                <User size={20} color="#22C55E" strokeWidth={2.5} />
+            <View style={{ marginBottom: 18 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                <User size={20} color={profileData.userType === 'buyer' ? '#3B82F6' : '#22C55E'} strokeWidth={2.5} />
                 <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827' }}>
                   {tr('profile.basicInfo', 'Basic Information')}
                 </Text>
               </View>
 
-              <View style={{
-                backgroundColor: '#FFFFFF',
-                borderRadius: 16,
-                padding: 16,
-                gap: 12,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.05,
-                shadowRadius: 8,
-                elevation: 2,
-              }}>
+              <LinearGradient
+                colors={['#FFFFFF', '#F8FAFC']}
+                style={{
+                  borderRadius: 20,
+                  padding: 20,
+                  gap: 14,
+                  shadowColor: profileData.userType === 'buyer' ? '#3B82F6' : '#22C55E',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 12,
+                  elevation: 4,
+                  borderWidth: 1,
+                  borderColor: '#E5E7EB',
+                }}
+              >
                 <CustomInput
                   label={tr('profile.fullName', 'Full Name')}
                   placeholder={tr('profile.fullNamePlaceholder', 'Enter your full name')}
@@ -497,74 +555,84 @@ export const ProfileScreen = () => {
                   keyboardType="email-address"
                   autoCapitalize="none"
                 />
-              </View>
+              </LinearGradient>
             </View>
 
             {/* Location Information Section */}
-            <View style={{ marginBottom: 20 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                <MapPin size={20} color="#22C55E" strokeWidth={2.5} />
-                <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827' }}>
-                  {tr('profile.locationInfo', 'Location Information')}
-                </Text>
-              </View>
+            {(profileData.state || profileData.district) && (
+              <View style={{ marginBottom: 18 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                  <MapPin size={20} color={profileData.userType === 'buyer' ? '#3B82F6' : '#22C55E'} strokeWidth={2.5} />
+                  <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827' }}>
+                    {tr('profile.locationInfo', 'Location Information')}
+                  </Text>
+                </View>
 
-              <View style={{
-                backgroundColor: '#FFFFFF',
-                borderRadius: 16,
-                padding: 16,
-                gap: 12,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.05,
-                shadowRadius: 8,
-                elevation: 2,
-              }}>
-                <CustomInput
-                  label={tr('profile.state', 'State')}
-                  placeholder={tr('profile.statePlaceholder', 'Select your state')}
-                  value={
-                    INDIAN_STATES.find((s) => s.value === profileData.state)
-                      ? t(INDIAN_STATES.find((s) => s.value === profileData.state)!.labelKey)
-                      : ''
-                  }
-                  editable={false}
-                  style={{ backgroundColor: '#F3F4F6' }}
-                />
+                <LinearGradient
+                  colors={['#FFFFFF', '#F8FAFC']}
+                  style={{
+                    borderRadius: 20,
+                    padding: 20,
+                    gap: 14,
+                    shadowColor: profileData.userType === 'buyer' ? '#3B82F6' : '#22C55E',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 12,
+                    elevation: 4,
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                  }}
+                >
+                  <CustomInput
+                    label={tr('profile.state', 'State')}
+                    placeholder={tr('profile.statePlaceholder', 'Select your state')}
+                    value={
+                      INDIAN_STATES.find((s) => s.value === profileData.state)
+                        ? t(INDIAN_STATES.find((s) => s.value === profileData.state)!.labelKey)
+                        : profileData.state
+                    }
+                    editable={false}
+                    style={{ backgroundColor: '#F3F4F6' }}
+                  />
 
-                <CustomInput
-                  label={tr('profile.district', 'District')}
-                  placeholder={tr('profile.districtPlaceholder', 'Enter your district')}
-                  value={
-                    INDIAN_DISTRICTS.find((d) => d.value === profileData.district)
-                      ? t(INDIAN_DISTRICTS.find((d) => d.value === profileData.district)!.labelKey)
-                      : profileData.district
-                  }
-                  editable={false}
-                  style={{ backgroundColor: '#F3F4F6' }}
-                />
+                  <CustomInput
+                    label={tr('profile.district', 'District')}
+                    placeholder={tr('profile.districtPlaceholder', 'Enter your district')}
+                    value={
+                      INDIAN_DISTRICTS.find((d) => d.value === profileData.district)
+                        ? t(INDIAN_DISTRICTS.find((d) => d.value === profileData.district)!.labelKey)
+                        : profileData.district
+                    }
+                    editable={false}
+                    style={{ backgroundColor: '#F3F4F6' }}
+                  />
+                </LinearGradient>
               </View>
-            </View>
+            )}
 
             {/* Language Preference Section */}
-            <View style={{ marginBottom: 20 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                <Globe size={20} color="#22C55E" strokeWidth={2.5} />
+            <View style={{ marginBottom: 18 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                <Globe size={20} color={profileData.userType === 'buyer' ? '#3B82F6' : '#22C55E'} strokeWidth={2.5} />
                 <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827' }}>
                   {tr('profile.languagePreference', 'Language Preference')}
                 </Text>
               </View>
 
-              <View style={{
-                backgroundColor: '#FFFFFF',
-                borderRadius: 16,
-                padding: 16,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.05,
-                shadowRadius: 8,
-                elevation: 2,
-              }}>
+              <LinearGradient
+                colors={['#FFFFFF', '#F8FAFC']}
+                style={{
+                  borderRadius: 20,
+                  padding: 20,
+                  shadowColor: profileData.userType === 'buyer' ? '#3B82F6' : '#22C55E',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 12,
+                  elevation: 4,
+                  borderWidth: 1,
+                  borderColor: '#E5E7EB',
+                }}
+              >
                 <Dropdown
                   label={tr('profile.preferredLanguage', 'Preferred Language')}
                   placeholder={tr('profile.languagePlaceholder', 'Select language')}
@@ -587,56 +655,104 @@ export const ProfileScreen = () => {
                     }
                   }}
                 />
-              </View>
+              </LinearGradient>
             </View>
 
-            {/* Farming Information Section */}
-            <View style={{ marginBottom: 20 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                <Sprout size={20} color="#22C55E" strokeWidth={2.5} />
-                <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827' }}>
-                  {tr('profile.farmingInfo', 'Farming Information')}
-                </Text>
-              </View>
+            {/* Farming Information Section - Only for Farmers */}
+            {profileData.userType === 'farmer' && (
+              <View style={{ marginBottom: 18 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                  <Sprout size={20} color="#22C55E" strokeWidth={2.5} />
+                  <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827' }}>
+                    {tr('profile.farmingInfo', 'Farming Information')}
+                  </Text>
+                </View>
 
-              <View style={{
-                backgroundColor: '#FFFFFF',
-                borderRadius: 16,
-                padding: 16,
-                gap: 12,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.05,
-                shadowRadius: 8,
-                elevation: 2,
-              }}>
-                <CustomInput
-                  label={tr('profile.farmerType', 'Farmer Type')}
-                  placeholder={tr('profile.farmerTypePlaceholder', 'Select farmer type')}
-                  value={
-                    FARMER_TYPES.find((f) => f.value === profileData.farmerType)
-                      ? t(FARMER_TYPES.find((f) => f.value === profileData.farmerType)!.labelKey)
-                      : ''
-                  }
-                  editable={false}
-                  style={{ backgroundColor: '#F3F4F6' }}
-                />
+                <LinearGradient
+                  colors={['#FFFFFF', '#F8FAFC']}
+                  style={{
+                    borderRadius: 20,
+                    padding: 20,
+                    gap: 14,
+                    shadowColor: '#22C55E',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 12,
+                    elevation: 4,
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                  }}
+                >
+                  <CustomInput
+                    label={tr('profile.farmerType', 'Farmer Type')}
+                    placeholder={tr('profile.farmerTypePlaceholder', 'Select farmer type')}
+                    value={
+                      FARMER_TYPES.find((f) => f.value === profileData.farmerType)
+                        ? t(FARMER_TYPES.find((f) => f.value === profileData.farmerType)!.labelKey)
+                        : ''
+                    }
+                    editable={false}
+                    style={{ backgroundColor: '#F3F4F6' }}
+                  />
 
-                <CustomInput
-                  label={tr('profile.landSize', 'Land Size')}
-                  placeholder={tr('profile.landSizePlaceholder', 'Enter land size')}
-                  value={profileData.landSize}
-                  onChangeText={(value) => handleFieldChange('landSize', value)}
-                  keyboardType="decimal-pad"
-                  suffix={tr('profile.acres', 'acres')}
-                />
+                  <CustomInput
+                    label={tr('profile.landSize', 'Land Size')}
+                    placeholder={tr('profile.landSizePlaceholder', 'Enter land size')}
+                    value={profileData.landSize}
+                    onChangeText={(value) => handleFieldChange('landSize', value)}
+                    keyboardType="decimal-pad"
+                    suffix={tr('profile.acres', 'acres')}
+                  />
+                </LinearGradient>
               </View>
-            </View>
+            )}
+
+            {/* Business Information Section - Only for Buyers */}
+            {profileData.userType === 'buyer' && (
+              <View style={{ marginBottom: 18 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                  <ShoppingBag size={20} color="#3B82F6" strokeWidth={2.5} />
+                  <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827' }}>
+                    {tr('profile.businessInfo', 'Business Information')}
+                  </Text>
+                </View>
+
+                <LinearGradient
+                  colors={['#FFFFFF', '#F8FAFC']}
+                  style={{
+                    borderRadius: 20,
+                    padding: 20,
+                    gap: 14,
+                    shadowColor: '#3B82F6',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 12,
+                    elevation: 4,
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                  }}
+                >
+                  <CustomInput
+                    label={tr('profile.companyName', 'Company Name')}
+                    placeholder={tr('profile.companyNamePlaceholder', 'Enter your company name')}
+                    value={profileData.companyName || ''}
+                    onChangeText={(value) => handleFieldChange('companyName', value)}
+                  />
+
+                  <CustomInput
+                    label={tr('profile.businessType', 'Business Type')}
+                    placeholder={tr('profile.businessTypePlaceholder', 'e.g., Wholesaler, Retailer, Restaurant')}
+                    value={profileData.businessType || ''}
+                    onChangeText={(value) => handleFieldChange('businessType', value)}
+                  />
+                </LinearGradient>
+              </View>
+            )}
 
             {/* Preferences Section */}
             <View style={{ marginBottom: 24 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                <Bell size={20} color="#22C55E" strokeWidth={2.5} />
+                <Bell size={20} color={profileData.userType === 'buyer' ? '#3B82F6' : '#22C55E'} strokeWidth={2.5} />
                 <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827' }}>
                   {tr('profile.preferences', 'Preferences')}
                 </Text>
@@ -668,8 +784,8 @@ export const ProfileScreen = () => {
                   onValueChange={(value) =>
                     handleFieldChange('notificationsEnabled', value)
                   }
-                  trackColor={{ false: '#D1D5DB', true: '#86EFAC' }}
-                  thumbColor={profileData.notificationsEnabled ? '#22C55E' : '#9CA3AF'}
+                  trackColor={{ false: '#D1D5DB', true: profileData.userType === 'buyer' ? '#BFDBFE' : '#86EFAC' }}
+                  thumbColor={profileData.notificationsEnabled ? (profileData.userType === 'buyer' ? '#3B82F6' : '#22C55E') : '#9CA3AF'}
                 />
               </View>
             </View>
@@ -681,12 +797,12 @@ export const ProfileScreen = () => {
               activeOpacity={0.8}
             >
               <LinearGradient
-                colors={!hasChanges || isLoading ? ['#D1D5DB', '#9CA3AF'] : ['#22C55E', '#16A34A']}
+                colors={!hasChanges || isLoading ? ['#D1D5DB', '#9CA3AF'] : (profileData.userType === 'buyer' ? ['#3B82F6', '#2563EB'] : ['#22C55E', '#16A34A'])}
                 style={{
                   borderRadius: 16,
                   paddingVertical: 16,
                   marginBottom: 12,
-                  shadowColor: !hasChanges || isLoading ? 'transparent' : '#22C55E',
+                  shadowColor: !hasChanges || isLoading ? 'transparent' : (profileData.userType === 'buyer' ? '#3B82F6' : '#22C55E'),
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.3,
                   shadowRadius: 8,
@@ -722,6 +838,7 @@ export const ProfileScreen = () => {
           </>
         )}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
